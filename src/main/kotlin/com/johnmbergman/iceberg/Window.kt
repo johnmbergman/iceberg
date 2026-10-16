@@ -1,9 +1,14 @@
 package com.johnmbergman.iceberg
 
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
+import org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MAJOR
+import org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MINOR
 import org.lwjgl.glfw.GLFW.GLFW_FALSE
 import org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
 import org.lwjgl.glfw.GLFW.GLFW_MAXIMIZED
+import org.lwjgl.glfw.GLFW.GLFW_OPENGL_CORE_PROFILE
+import org.lwjgl.glfw.GLFW.GLFW_OPENGL_FORWARD_COMPAT
+import org.lwjgl.glfw.GLFW.GLFW_OPENGL_PROFILE
 import org.lwjgl.glfw.GLFW.GLFW_RELEASE
 import org.lwjgl.glfw.GLFW.GLFW_RESIZABLE
 import org.lwjgl.glfw.GLFW.GLFW_TRUE
@@ -43,7 +48,7 @@ class Window {
 
     private val onResize: Callable<Void>?
 
-    constructor(title: String, initialHeight: Int = 1024, initialWidth: Int = 768, fullscreen: Boolean = false, onResize: Callable<Void>? = null) {
+    constructor(title: String, initialWidth: Int = 1024, initialHeight: Int = 768, fullscreen: Boolean = false, onResize: Callable<Void>? = null) {
         this.onResize = onResize
 
         // Initialize GLFW. Most GLFW functions will not work before doing this.
@@ -53,6 +58,10 @@ class Window {
 
         // Initialize GLFW
         glfwDefaultWindowHints() // Optional, the current window hints are already default
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3)
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE)
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE) // required on macOS
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE) // The window will stay hidden after creation
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE) // The window will be resizable
 
@@ -72,7 +81,7 @@ class Window {
         }
 
         // Create the window
-        windowHandle = glfwCreateWindow(300, 300, "Hello World!", NULL, NULL)
+        windowHandle = glfwCreateWindow(width, height, "Hello World!", NULL, NULL)
         if (windowHandle == NULL) {
             throw RuntimeException("Failed to create the GLFW window")
         }

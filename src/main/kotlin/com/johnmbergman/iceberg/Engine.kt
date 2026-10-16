@@ -1,9 +1,10 @@
 package com.johnmbergman.iceberg
 
-import com.johnmbergman.iceberg.core.graphics.OpenGLRenderer
-import com.johnmbergman.iceberg.core.graphics.Renderer
+import com.johnmbergman.iceberg.graphics.OpenGLRenderer
+import com.johnmbergman.iceberg.graphics.Renderer
 import com.johnmbergman.iceberg.monitoring.Logger
 import com.johnmbergman.iceberg.monitoring.SimpleLogger
+import com.johnmbergman.iceberg.scene.Scene
 
 class Engine {
 
@@ -24,7 +25,7 @@ class Engine {
         running = true
     }
 
-    private fun run() {
+    private fun run(initialScene: Scene) {
         logger.debug("Starting game engine...")
         var initialTime = System.currentTimeMillis()
         var timeU = 1000.0f / targetUpdatesPerSecond
@@ -46,7 +47,7 @@ class Engine {
             }
 
             if (targetFramesPerSecond <= 0 || deltaFramesPerSecond >= 1) {
-                renderer.render(window)
+                renderer.render(window, initialScene)
                 deltaFramesPerSecond--
                 window.update()
             }
@@ -63,9 +64,9 @@ class Engine {
         logger.debug("Window cleaned up")
     }
 
-    fun start() {
+    fun start(initialScene: Scene) {
         running = true
-        run()
+        run(initialScene)
     }
 
     fun stop() {
