@@ -13,19 +13,26 @@ class Engine {
     private val targetUpdatesPerSecond: Int = 30
     private val renderer: Renderer
     private val logger: Logger = SimpleLogger()
+    private val handler: IAppLogic
 
+    private var currentScene: Scene
     private var running: Boolean = false
 
-    constructor() {
+    constructor(handler: IAppLogic) {
+        this.handler = handler
+
         logger.debug("Initializing game engine...")
         window = Window("Game Window")
         logger.debug("Window created: ${window.windowHandle}")
         renderer = OpenGLRenderer()
         logger.debug("Renderer initialized")
+        currentScene = Scene()
+        resize()
+        handler.onInit(window, currentScene, renderer)
         running = true
     }
 
-    private fun run(initialScene: Scene) {
+    private fun run() {
         logger.debug("Starting game engine...")
         var initialTime = System.currentTimeMillis()
         var timeU = 1000.0f / targetUpdatesPerSecond
@@ -43,11 +50,12 @@ class Engine {
             if (deltaUpdate >= 1) {
                 val diffTimeMillis = now - updateTime
                 updateTime = now
+                handler.onUpdate(window, currentScene, diffTimeMillis)
                 deltaUpdate--
             }
 
             if (targetFramesPerSecond <= 0 || deltaFramesPerSecond >= 1) {
-                renderer.render(window, initialScene)
+                renderer.render(window, currentScene)
                 deltaFramesPerSecond--
                 window.update()
             }
@@ -57,16 +65,24 @@ class Engine {
     }
 
     private fun cleanup() {
+        logger.debug("Cleaning up root handler...")
+        handler.cleanup()
         logger.debug("Cleaning up game engine...")
         renderer.cleanup()
-        logger.debug("Renderer cleaned up")
+        logger.debug("Cleaning up scene...")
+        currentScene.cleanup()
+        logger.debug("Cleaning up window...")
         window.cleanup()
         logger.debug("Window cleaned up")
     }
 
-    fun start(initialScene: Scene) {
+    private fun resize() {
+        currentScene.resize(window.width, window.height)
+    }
+
+    fun start() {
         running = true
-        run(initialScene)
+        run()
     }
 
     fun stop() {

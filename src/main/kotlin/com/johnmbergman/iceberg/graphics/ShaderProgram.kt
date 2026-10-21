@@ -21,7 +21,7 @@ import org.lwjgl.opengl.GL20C.glUseProgram
 import org.lwjgl.opengl.GL20C.glValidateProgram
 
 class ShaderProgram {
-    private val programId: Int
+    val programId: Int
 
     constructor(shaderModuleData: List<ShaderModuleData>) {
         programId = glCreateProgram()

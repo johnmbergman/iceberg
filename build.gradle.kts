@@ -7,6 +7,7 @@ group = "com.johnmbergman.iceberg"
 version = "1.0-SNAPSHOT"
 
 val lwjglVersion = "3.4.3"
+val jomlVersion = "1.10.9"
 
 val lwjglNatives = Pair(
     System.getProperty("os.name")!!,
@@ -45,6 +46,8 @@ dependencies {
     runtimeOnly("org.lwjgl:lwjgl-glfw::$lwjglNatives")
     runtimeOnly("org.lwjgl:lwjgl-opengl::$lwjglNatives")
     runtimeOnly("org.lwjgl:lwjgl-stb::$lwjglNatives")
+
+    implementation("org.joml:joml:$jomlVersion")
 
     testImplementation(kotlin("test"))
 }
