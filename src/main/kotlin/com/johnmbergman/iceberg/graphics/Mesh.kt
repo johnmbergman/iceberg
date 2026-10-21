@@ -2,6 +2,7 @@ package com.johnmbergman.iceberg.graphics
 
 import org.lwjgl.opengl.GL11C.GL_FLOAT
 import org.lwjgl.opengl.GL15C.GL_ARRAY_BUFFER
+import org.lwjgl.opengl.GL15C.GL_ELEMENT_ARRAY_BUFFER
 import org.lwjgl.opengl.GL15C.GL_STATIC_DRAW
 import org.lwjgl.opengl.GL15C.glBindBuffer
 import org.lwjgl.opengl.GL15C.glBufferData
@@ -14,33 +15,54 @@ import org.lwjgl.opengl.GL30C.glDeleteVertexArrays
 import org.lwjgl.opengl.GL30C.glGenVertexArrays
 import org.lwjgl.system.MemoryUtil
 import java.nio.FloatBuffer
+import java.nio.IntBuffer
 
 class Mesh {
     val numberOfVertices: Int
     val vertexArrayObjectId: Int
     val vertexBufferObjectIdList: MutableList<Int>
 
-    constructor(positions: FloatArray, numberOfVertices: Int) {
-        this.numberOfVertices = numberOfVertices
+    constructor(positions: FloatArray, colors: FloatArray, indices: IntArray) {
+        this.numberOfVertices = indices.size
 
         vertexBufferObjectIdList = mutableListOf()
         vertexArrayObjectId = glGenVertexArrays()
         glBindVertexArray(vertexArrayObjectId)
 
         // Positions VBO
-        val vboId = glGenBuffers()
-        vertexBufferObjectIdList.add(vboId)
+        val positionsVboId = glGenBuffers()
+        vertexBufferObjectIdList.add(positionsVboId)
         val positionsBuffer: FloatBuffer = MemoryUtil.memCallocFloat(positions.size)
         positionsBuffer.put(0, positions)
-        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBindBuffer(GL_ARRAY_BUFFER, positionsVboId);
         glBufferData(GL_ARRAY_BUFFER, positionsBuffer, GL_STATIC_DRAW);
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+
+        // Color VBO
+        val colorsVboId = glGenBuffers()
+        vertexBufferObjectIdList.add(colorsVboId)
+        val colorsBuffer: FloatBuffer = MemoryUtil.memCallocFloat(colors.size)
+        colorsBuffer.put(0, colors)
+        glBindBuffer(GL_ARRAY_BUFFER, colorsVboId);
+        glBufferData(GL_ARRAY_BUFFER, colorsBuffer, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
+
+        // Index VBO
+        val indicesVboId = glGenBuffers()
+        vertexBufferObjectIdList.add(indicesVboId)
+        val indicesBuffer: IntBuffer = MemoryUtil.memCallocInt(indices.size)
+        indicesBuffer.put(0, indices)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesVboId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
 
         MemoryUtil.memFree(positionsBuffer)
+        MemoryUtil.memFree(colorsBuffer)
+        MemoryUtil.memFree(indicesBuffer)
     }
 
     fun cleanup() {
