@@ -7,6 +7,7 @@ import org.lwjgl.opengl.GL11C.glDrawElements
 import org.lwjgl.opengl.GL30C.glBindVertexArray
 
 private const val PROJECTION_MATRIX_UNIFORM_NAME = "projectionMatrix"
+private const val MODEL_MATRIX_UNIFORM_NAME = "modelMatrix"
 
 class SceneRenderer {
     private val shaderProgram: ShaderProgram
@@ -20,6 +21,7 @@ class SceneRenderer {
         shaderProgram = ShaderProgram(shaderModuleDataList)
         uniforms = UniformsMap(shaderProgram.programId)
         uniforms.createUniform(PROJECTION_MATRIX_UNIFORM_NAME)
+        uniforms.createUniform(MODEL_MATRIX_UNIFORM_NAME)
     }
 
     fun cleanup() {
@@ -29,9 +31,14 @@ class SceneRenderer {
     fun render(scene: Scene) {
         shaderProgram.bind()
         uniforms.setUniform(PROJECTION_MATRIX_UNIFORM_NAME, scene.projection.projectionMatrix)
-        scene.meshMap.forEach { (_, mesh) ->
-            glBindVertexArray(mesh.vertexArrayObjectId)
-            glDrawElements(GL_TRIANGLES, mesh.numberOfVertices, GL_UNSIGNED_INT, 0)
+        scene.modelMap.forEach { (_, model) ->
+            model.meshList.forEach { mesh ->
+                glBindVertexArray(mesh.vertexArrayObjectId)
+                model.getEntities().forEach { entity ->
+                    uniforms.setUniform(MODEL_MATRIX_UNIFORM_NAME, entity.modelMatrix)
+                    glDrawElements(GL_TRIANGLES, mesh.numberOfVertices, GL_UNSIGNED_INT, 0)
+                }
+            }
         }
         glBindVertexArray(0)
         shaderProgram.unbind()

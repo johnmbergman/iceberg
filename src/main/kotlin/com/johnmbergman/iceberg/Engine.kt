@@ -47,6 +47,10 @@ class Engine {
             deltaUpdate += (now - initialTime) / timeU
             deltaFramesPerSecond += (now - initialTime) / timeR
 
+            if (targetFramesPerSecond <= 0 || deltaFramesPerSecond >= 1) {
+                handler.onInput(window, currentScene, now - initialTime)
+            }
+
             if (deltaUpdate >= 1) {
                 val diffTimeMillis = now - updateTime
                 updateTime = now

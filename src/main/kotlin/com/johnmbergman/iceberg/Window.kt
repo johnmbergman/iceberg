@@ -9,6 +9,7 @@ import org.lwjgl.glfw.GLFW.GLFW_MAXIMIZED
 import org.lwjgl.glfw.GLFW.GLFW_OPENGL_CORE_PROFILE
 import org.lwjgl.glfw.GLFW.GLFW_OPENGL_FORWARD_COMPAT
 import org.lwjgl.glfw.GLFW.GLFW_OPENGL_PROFILE
+import org.lwjgl.glfw.GLFW.GLFW_PRESS
 import org.lwjgl.glfw.GLFW.GLFW_RELEASE
 import org.lwjgl.glfw.GLFW.GLFW_RESIZABLE
 import org.lwjgl.glfw.GLFW.GLFW_TRUE
@@ -16,6 +17,7 @@ import org.lwjgl.glfw.GLFW.GLFW_VISIBLE
 import org.lwjgl.glfw.GLFW.glfwCreateWindow
 import org.lwjgl.glfw.GLFW.glfwDefaultWindowHints
 import org.lwjgl.glfw.GLFW.glfwDestroyWindow
+import org.lwjgl.glfw.GLFW.glfwGetKey
 import org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor
 import org.lwjgl.glfw.GLFW.glfwGetVideoMode
 import org.lwjgl.glfw.GLFW.glfwGetWindowSize
@@ -155,6 +157,10 @@ class Window {
     // Is there a better way to do this?
     fun pollEvents() {
         glfwPollEvents()
+    }
+
+    fun isKeyPressed(keyCode: Int): Boolean {
+        return glfwGetKey(windowHandle, keyCode) == GLFW_PRESS
     }
 
     fun shouldClose(): Boolean {
