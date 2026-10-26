@@ -2,6 +2,7 @@ package com.johnmbergman.iceberg.graphics
 
 import org.joml.Matrix4f
 import org.lwjgl.opengl.GL20C.glGetUniformLocation
+import org.lwjgl.opengl.GL20C.glUniform1i
 import org.lwjgl.opengl.GL20C.glUniformMatrix4fv
 import org.lwjgl.system.MemoryStack
 
@@ -20,8 +21,15 @@ class UniformsMap(private val programId: Int) {
 
     fun setUniform(name: String, value: Matrix4f) {
         MemoryStack.stackPush().use { stack ->
-            val location: Int = uniforms[name] ?: throw java.lang.RuntimeException("Could not find uniform [$name]")
-            glUniformMatrix4fv(location, false, value.get(stack.mallocFloat(16)))
+            glUniformMatrix4fv(getLocation(name), false, value.get(stack.mallocFloat(16)))
         }
+    }
+
+    fun setUniform(name: String, value: Int) {
+        glUniform1i(getLocation(name), value)
+    }
+
+    private fun getLocation(name: String): Int {
+        return uniforms[name] ?: throw RuntimeException("Could not find uniform [$name]")
     }
 }

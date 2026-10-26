@@ -2,11 +2,11 @@ package com.johnmbergman.iceberg.graphics
 
 import com.johnmbergman.iceberg.scene.Entity
 
-class Model(val id: String, val meshList: List<Mesh>) {
+class Model(val id: String, val materialList: List<Material>) {
     private val entitiesList = mutableListOf<Entity>()
 
     fun cleanup() {
-        meshList.forEach { it.cleanup() }
+        materialList.forEach { it.cleanup() }
     }
 
     fun getEntities(): List<Entity> {

@@ -1,5 +1,6 @@
 package com.johnmbergman.iceberg
 
+import com.johnmbergman.iceberg.graphics.Material
 import com.johnmbergman.iceberg.graphics.Mesh
 import com.johnmbergman.iceberg.graphics.Model
 import com.johnmbergman.iceberg.graphics.Renderer
@@ -24,56 +25,78 @@ val TEST_QUAD = Mesh(
         0.5f, 0.5f, -5f,
         ),
     floatArrayOf(
-        0.5f, 0.0f, 0.0f,
-        0.0f, 0.5f, 0.0f,
-        0.0f, 0.0f, 0.5f,
-        0.0f, 0.5f, 0.5f,
+        0.0f, 0.0f,
+        0.0f, 1.0f,
+        1.0f, 1.0f,
+        1.0f, 0.0f,
         ),
     intArrayOf(0, 1, 3, 3, 1, 2)
 )
 
+/**
+ * Each face has its own four vertices so it can map the full texture.
+ * Faces are wound counter-clockwise when viewed from outside the cube.
+ */
 val TEST_CUBE = Mesh(
     floatArrayOf(
-        // VO
+        // Front face
         -0.5f, 0.5f, 0.5f,
-        // V1
         -0.5f, -0.5f, 0.5f,
-        // V2
         0.5f, -0.5f, 0.5f,
-        // V3
         0.5f, 0.5f, 0.5f,
-        // V4
-        -0.5f, 0.5f, -0.5f,
-        // V5
+        // Back face
         0.5f, 0.5f, -0.5f,
-        // V6
-        -0.5f, -0.5f, -0.5f,
-        // V7
         0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+        -0.5f, 0.5f, -0.5f,
+        // Right face
+        0.5f, 0.5f, 0.5f,
+        0.5f, -0.5f, 0.5f,
+        0.5f, -0.5f, -0.5f,
+        0.5f, 0.5f, -0.5f,
+        // Left face
+        -0.5f, 0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f, 0.5f,
+        -0.5f, 0.5f, 0.5f,
+        // Top face
+        -0.5f, 0.5f, -0.5f,
+        -0.5f, 0.5f, 0.5f,
+        0.5f, 0.5f, 0.5f,
+        0.5f, 0.5f, -0.5f,
+        // Bottom face
+        -0.5f, -0.5f, 0.5f,
+        -0.5f, -0.5f, -0.5f,
+        0.5f, -0.5f, -0.5f,
+        0.5f, -0.5f, 0.5f,
     ),
     floatArrayOf(
-        0.5f, 0.0f, 0.0f,
-        0.0f, 0.5f, 0.0f,
-        0.0f, 0.0f, 0.5f,
-        0.0f, 0.5f, 0.5f,
-        0.5f, 0.0f, 0.0f,
-        0.0f, 0.5f, 0.0f,
-        0.0f, 0.0f, 0.5f,
-        0.0f, 0.5f, 0.5f,
+        // Front face
+        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        // Back face
+        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        // Right face
+        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        // Left face
+        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        // Top face
+        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+        // Bottom face
+        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
     ),
     intArrayOf(
         // Front face
-        0, 1, 3, 3, 1, 2,
-        // Top Face
-        4, 0, 3, 5, 4, 3,
-        // Right face
-        3, 2, 7, 5, 3, 7,
-        // Left face
-        6, 1, 0, 6, 0, 4,
-        // Bottom face
-        2, 1, 6, 2, 6, 7,
+        0, 1, 2, 2, 3, 0,
         // Back face
-        7, 6, 4, 7, 4, 5,
+        4, 5, 6, 6, 7, 4,
+        // Right face
+        8, 9, 10, 10, 11, 8,
+        // Left face
+        12, 13, 14, 14, 15, 12,
+        // Top face
+        16, 17, 18, 18, 19, 16,
+        // Bottom face
+        20, 21, 22, 22, 23, 20,
     )
 )
 
@@ -89,7 +112,9 @@ class TestGame: IAppLogic {
 
     override fun onInit(window: Window, scene: Scene, renderer: Renderer) {
         val cubeModelId = "cube-model"
-        val cubeModel = Model(cubeModelId, listOf(TEST_CUBE))
+        val cubeMaterial = Material(scene.textureCache.default)
+        cubeMaterial.meshList.add(TEST_CUBE)
+        val cubeModel = Model(cubeModelId, listOf(cubeMaterial))
         scene.addModel(cubeModel)
 
         cubeEntity = Entity("cube-entity", cubeModelId)

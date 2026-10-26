@@ -8,6 +8,12 @@ However, if you are interested in understanding basic game development concepts,
 
 Feel free to take a look through the source code, or even fork and submit pull requests!
 
+## Acknowledgments
+
+Developed with reference to [3D Game Development with LWJGL 3](https://ahbejarano.gitbook.io/lwjglgamedev)
+by Antonio Hernández Bejarano. The book text is licensed under CC BY-SA 4.0 and its
+[source code](https://github.com/lwjglgamedev/lwjglbook) under Apache 2.0.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

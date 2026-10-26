@@ -22,7 +22,7 @@ class Mesh {
     val vertexArrayObjectId: Int
     val vertexBufferObjectIdList: MutableList<Int>
 
-    constructor(positions: FloatArray, colors: FloatArray, indices: IntArray) {
+    constructor(positions: FloatArray, textureCoordinates: FloatArray, indices: IntArray) {
         this.numberOfVertices = indices.size
 
         vertexBufferObjectIdList = mutableListOf()
@@ -39,15 +39,15 @@ class Mesh {
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 
-        // Color VBO
-        val colorsVboId = glGenBuffers()
-        vertexBufferObjectIdList.add(colorsVboId)
-        val colorsBuffer: FloatBuffer = MemoryUtil.memCallocFloat(colors.size)
-        colorsBuffer.put(0, colors)
-        glBindBuffer(GL_ARRAY_BUFFER, colorsVboId);
-        glBufferData(GL_ARRAY_BUFFER, colorsBuffer, GL_STATIC_DRAW);
+        // Texture coordinates VBO
+        val textureCoordinatesVboId = glGenBuffers()
+        vertexBufferObjectIdList.add(textureCoordinatesVboId)
+        val textureCoordinatesBuffer: FloatBuffer = MemoryUtil.memCallocFloat(textureCoordinates.size)
+        textureCoordinatesBuffer.put(0, textureCoordinates)
+        glBindBuffer(GL_ARRAY_BUFFER, textureCoordinatesVboId);
+        glBufferData(GL_ARRAY_BUFFER, textureCoordinatesBuffer, GL_STATIC_DRAW);
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
 
         // Index VBO
         val indicesVboId = glGenBuffers()
@@ -61,7 +61,7 @@ class Mesh {
         glBindVertexArray(0)
 
         MemoryUtil.memFree(positionsBuffer)
-        MemoryUtil.memFree(colorsBuffer)
+        MemoryUtil.memFree(textureCoordinatesBuffer)
         MemoryUtil.memFree(indicesBuffer)
     }
 
