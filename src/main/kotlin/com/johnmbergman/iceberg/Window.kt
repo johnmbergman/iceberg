@@ -17,6 +17,7 @@ import org.lwjgl.glfw.GLFW.GLFW_VISIBLE
 import org.lwjgl.glfw.GLFW.glfwCreateWindow
 import org.lwjgl.glfw.GLFW.glfwDefaultWindowHints
 import org.lwjgl.glfw.GLFW.glfwDestroyWindow
+import org.lwjgl.glfw.GLFW.glfwGetFramebufferSize
 import org.lwjgl.glfw.GLFW.glfwGetKey
 import org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor
 import org.lwjgl.glfw.GLFW.glfwGetVideoMode
@@ -37,7 +38,6 @@ import org.lwjgl.glfw.GLFW.glfwWindowHint
 import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
-import java.util.concurrent.Callable
 
 
 class Window {
@@ -48,9 +48,9 @@ class Window {
     var height: Int = 768
         private set
 
-    private val onResize: Callable<Void>?
+    private val onResize: (() -> Unit)?
 
-    constructor(title: String, initialWidth: Int = 1024, initialHeight: Int = 768, fullscreen: Boolean = false, onResize: Callable<Void>? = null) {
+    constructor(title: String, initialWidth: Int = 1024, initialHeight: Int = 768, fullscreen: Boolean = false, onResize: (() -> Unit)? = null) {
         this.onResize = onResize
 
         // Initialize GLFW. Most GLFW functions will not work before doing this.
@@ -83,7 +83,7 @@ class Window {
         }
 
         // Create the window
-        windowHandle = glfwCreateWindow(width, height, "Hello World!", NULL, NULL)
+        windowHandle = glfwCreateWindow(width, height, title, NULL, NULL)
         if (windowHandle == NULL) {
             throw RuntimeException("Failed to create the GLFW window")
         }
@@ -125,6 +125,15 @@ class Window {
         // Make the OpenGL context current
         glfwMakeContextCurrent(windowHandle)
 
+        // On high-DPI displays the framebuffer is larger than the window size in screen coordinates
+        stackPush().use { stack ->
+            val framebufferWidth = stack.mallocInt(1)
+            val framebufferHeight = stack.mallocInt(1)
+            glfwGetFramebufferSize(windowHandle, framebufferWidth, framebufferHeight)
+            width = framebufferWidth[0]
+            height = framebufferHeight[0]
+        }
+
         // Enable v-sync
         glfwSwapInterval(1)
 
@@ -136,7 +145,7 @@ class Window {
         this.width = width
         this.height = height
         try {
-            onResize?.call()
+            onResize?.invoke()
         } catch (ex: Exception) {
             System.err.println("Error calling resize callback")
             ex.printStackTrace(System.err)

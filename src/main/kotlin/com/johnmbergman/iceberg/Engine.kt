@@ -22,7 +22,7 @@ class Engine {
         this.handler = handler
 
         logger.debug("Initializing game engine...")
-        window = Window("Game Window")
+        window = Window("Game Window", onResize = ::resize)
         logger.debug("Window created: ${window.windowHandle}")
         renderer = OpenGLRenderer()
         logger.debug("Renderer initialized")
