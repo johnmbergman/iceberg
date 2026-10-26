@@ -4,34 +4,16 @@ import com.johnmbergman.iceberg.graphics.Material
 import com.johnmbergman.iceberg.graphics.Mesh
 import com.johnmbergman.iceberg.graphics.Model
 import com.johnmbergman.iceberg.graphics.Renderer
+import com.johnmbergman.iceberg.scene.Camera
 import com.johnmbergman.iceberg.scene.Entity
 import com.johnmbergman.iceberg.scene.Scene
 import org.joml.Vector4f
-import org.lwjgl.glfw.GLFW.GLFW_KEY_A
-import org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN
-import org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT
-import org.lwjgl.glfw.GLFW.GLFW_KEY_Q
-import org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT
-import org.lwjgl.glfw.GLFW.GLFW_KEY_UP
-import org.lwjgl.glfw.GLFW.GLFW_KEY_X
-import org.lwjgl.glfw.GLFW.GLFW_KEY_Z
-import kotlin.floatArrayOf
+import org.lwjgl.glfw.GLFW.*
+import org.lwjglb.engine.MouseInput
 
-val TEST_QUAD = Mesh(
-    floatArrayOf(
-        -0.5f, 0.5f, -5f,
-        -0.5f, -0.5f, -5f,
-        0.5f, -0.5f, -5f,
-        0.5f, 0.5f, -5f,
-        ),
-    floatArrayOf(
-        0.0f, 0.0f,
-        0.0f, 1.0f,
-        1.0f, 1.0f,
-        1.0f, 0.0f,
-        ),
-    intArrayOf(0, 1, 3, 3, 1, 2)
-)
+
+private const val MOUSE_SENSITIVITY = 0.1f
+private const val MOVEMENT_SPEED = 0.05f
 
 /**
  * Each face has its own four vertices so it can map the full texture.
@@ -111,6 +93,8 @@ class TestGame: IAppLogic {
     }
 
     override fun onInit(window: Window, scene: Scene, renderer: Renderer) {
+        window.mouseInput.isCaptured = true
+
         val cubeModelId = "cube-model"
         val cubeMaterial = Material(scene.textureCache.default)
         cubeMaterial.meshList.add(TEST_CUBE)
@@ -123,30 +107,31 @@ class TestGame: IAppLogic {
     }
 
     override fun onInput(window: Window, scene: Scene, deltaMillis: Long) {
-        displayInc.zero()
-        if (window.isKeyPressed(GLFW_KEY_UP)) {
-            displayInc.y = 1.0f
-        } else if (window.isKeyPressed(GLFW_KEY_DOWN)) {
-            displayInc.y = -1.0f
-        }
+        val move = deltaMillis * MOVEMENT_SPEED
 
-        if (window.isKeyPressed(GLFW_KEY_LEFT)) {
-            displayInc.x = -1.0f
-        } else if (window.isKeyPressed(GLFW_KEY_RIGHT)) {
-            displayInc.x = 1.0f
+        val camera: Camera = scene.camera
+        if (window.isKeyPressed(GLFW_KEY_W)) {
+            camera.moveForward(move)
+        } else if (window.isKeyPressed(GLFW_KEY_S)) {
+            camera.moveBackwards(move)
         }
-
         if (window.isKeyPressed(GLFW_KEY_A)) {
-            displayInc.z = -1.0f
-        } else if (window.isKeyPressed(GLFW_KEY_Q)) {
-            displayInc.z = 1.0f
+            camera.moveLeft(move)
+        } else if (window.isKeyPressed(GLFW_KEY_D)) {
+            camera.moveRight(move)
+        }
+        if (window.isKeyPressed(GLFW_KEY_UP)) {
+            camera.moveUp(move)
+        } else if (window.isKeyPressed(GLFW_KEY_DOWN)) {
+            camera.moveDown(move)
         }
 
-        if (window.isKeyPressed(GLFW_KEY_Z)) {
-            displayInc.w = -1.0f
-        } else if (window.isKeyPressed(GLFW_KEY_X)) {
-            displayInc.w = 1.0f
-        }
+        val mouseInput: MouseInput = window.mouseInput
+        val displVec = mouseInput.displVec
+        camera.addRotation(
+            Math.toRadians((-displVec.x * MOUSE_SENSITIVITY).toDouble()).toFloat(),
+            Math.toRadians((-displVec.y * MOUSE_SENSITIVITY).toDouble()).toFloat()
+        )
 
         displayInc.mul(deltaMillis / 1_000.0f)
         val entityPosition = cubeEntity.position

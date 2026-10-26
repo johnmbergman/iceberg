@@ -1,6 +1,6 @@
 package com.johnmbergman.iceberg.graphics
 
-import org.joml.Matrix4f
+import org.joml.Matrix4fc
 import org.lwjgl.opengl.GL20C.glGetUniformLocation
 import org.lwjgl.opengl.GL20C.glUniform1i
 import org.lwjgl.opengl.GL20C.glUniformMatrix4fv
@@ -19,7 +19,7 @@ class UniformsMap(private val programId: Int) {
         uniforms[name] = uniformLocation
     }
 
-    fun setUniform(name: String, value: Matrix4f) {
+    fun setUniform(name: String, value: Matrix4fc) {
         MemoryStack.stackPush().use { stack ->
             glUniformMatrix4fv(getLocation(name), false, value.get(stack.mallocFloat(16)))
         }

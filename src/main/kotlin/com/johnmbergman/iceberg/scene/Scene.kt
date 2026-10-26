@@ -9,6 +9,7 @@ class Scene {
 
     val modelMap = mutableMapOf<String, Model>()
     val projection = Projection()
+    val camera = Camera()
 
     fun addEntity(entity: Entity) {
         val model = modelMap[entity.modelId] ?: throw RuntimeException("Could not find model: ${entity.modelId}")

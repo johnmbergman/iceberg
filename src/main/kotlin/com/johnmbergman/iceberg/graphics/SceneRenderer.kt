@@ -9,6 +9,7 @@ import org.lwjgl.opengl.GL13C.glActiveTexture
 import org.lwjgl.opengl.GL30C.glBindVertexArray
 
 private const val PROJECTION_MATRIX_UNIFORM_NAME = "projectionMatrix"
+private const val VIEW_MATRIX_UNIFORM_NAME = "viewMatrix"
 private const val MODEL_MATRIX_UNIFORM_NAME = "modelMatrix"
 private const val TEXTURE_SAMPLER_UNIFORM_NAME = "textureSampler"
 
@@ -22,8 +23,10 @@ class SceneRenderer {
             ShaderModuleData("shaders/scene.frag", ShaderType.FRAGMENT)
         )
         shaderProgram = ShaderProgram(shaderModuleDataList)
+
         uniforms = UniformsMap(shaderProgram.programId)
         uniforms.createUniform(PROJECTION_MATRIX_UNIFORM_NAME)
+        uniforms.createUniform(VIEW_MATRIX_UNIFORM_NAME)
         uniforms.createUniform(MODEL_MATRIX_UNIFORM_NAME)
         uniforms.createUniform(TEXTURE_SAMPLER_UNIFORM_NAME)
     }
@@ -35,6 +38,7 @@ class SceneRenderer {
     fun render(scene: Scene) {
         shaderProgram.bind()
         uniforms.setUniform(PROJECTION_MATRIX_UNIFORM_NAME, scene.projection.projectionMatrix)
+        uniforms.setUniform(VIEW_MATRIX_UNIFORM_NAME, scene.camera.viewMatrix);
         uniforms.setUniform(TEXTURE_SAMPLER_UNIFORM_NAME, 0)
         glActiveTexture(GL_TEXTURE0)
         scene.modelMap.forEach { (_, model) ->

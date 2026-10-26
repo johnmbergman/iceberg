@@ -48,6 +48,7 @@ class Engine {
             deltaFramesPerSecond += (now - initialTime) / timeR
 
             if (targetFramesPerSecond <= 0 || deltaFramesPerSecond >= 1) {
+                window.mouseInput.input()
                 handler.onInput(window, currentScene, now - initialTime)
             }
 

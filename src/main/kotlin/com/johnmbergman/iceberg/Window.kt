@@ -38,11 +38,13 @@ import org.lwjgl.glfw.GLFW.glfwWindowHint
 import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
+import org.lwjglb.engine.MouseInput
 
 
 class Window {
 
     val windowHandle: Long
+    val mouseInput: MouseInput
     var width: Int = 1024
         private set
     var height: Int = 768
@@ -139,6 +141,9 @@ class Window {
 
         // Make the window visible
         glfwShowWindow(windowHandle)
+
+        // Initialize input system after showing the window so the initial hover state is accurate
+        mouseInput = MouseInput(windowHandle)
     }
 
     fun resize(width: Int, height: Int) {
