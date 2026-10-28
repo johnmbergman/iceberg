@@ -10,8 +10,9 @@ class Engine {
 
     private val platform: Platform
     private val window: Window
-    private val targetFramesPerSecond: Int = 30
-    private val targetUpdatesPerSecond: Int = 30
+    // 0 = uncapped; vsync (Window's swap interval) then paces rendering
+    private val targetFramesPerSecond: Int = 0
+    private val targetUpdatesPerSecond: Int = 60
     private val renderer: Renderer
     private val logger: Logger = SimpleLogger()
     private val handler: IAppLogic
@@ -43,6 +44,7 @@ class Engine {
         var deltaUpdate = 0.0f
         var deltaFramesPerSecond = 0.0f
         var updateTime = initialTime
+        var inputTime = initialTime
         while (running && !window.shouldClose()) {
             platform.pollEvents()
 
@@ -52,7 +54,8 @@ class Engine {
 
             if (targetFramesPerSecond <= 0 || deltaFramesPerSecond >= 1) {
                 window.mouseInput.input()
-                handler.onInput(window, currentScene, now - initialTime)
+                handler.onInput(window, currentScene, now - inputTime)
+                inputTime = now
             }
 
             if (deltaUpdate >= 1) {

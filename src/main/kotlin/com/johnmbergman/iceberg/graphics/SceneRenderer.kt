@@ -12,6 +12,7 @@ private const val PROJECTION_MATRIX_UNIFORM_NAME = "projectionMatrix"
 private const val VIEW_MATRIX_UNIFORM_NAME = "viewMatrix"
 private const val MODEL_MATRIX_UNIFORM_NAME = "modelMatrix"
 private const val TEXTURE_SAMPLER_UNIFORM_NAME = "textureSampler"
+private const val MATERIAL_DIFFUSE_UNIFORM_NAME = "material.diffuse"
 
 class SceneRenderer {
     private val shaderProgram: ShaderProgram
@@ -29,6 +30,7 @@ class SceneRenderer {
         uniforms.createUniform(VIEW_MATRIX_UNIFORM_NAME)
         uniforms.createUniform(MODEL_MATRIX_UNIFORM_NAME)
         uniforms.createUniform(TEXTURE_SAMPLER_UNIFORM_NAME)
+        uniforms.createUniform(MATERIAL_DIFFUSE_UNIFORM_NAME)
     }
 
     fun cleanup() {
@@ -43,6 +45,7 @@ class SceneRenderer {
         glActiveTexture(GL_TEXTURE0)
         scene.modelMap.forEach { (_, model) ->
             model.materialList.forEach { material ->
+                uniforms.setUniform(MATERIAL_DIFFUSE_UNIFORM_NAME, material.diffuseColor)
                 material.texture.bind()
                 material.meshList.forEach { mesh ->
                     glBindVertexArray(mesh.vertexArrayObjectId)

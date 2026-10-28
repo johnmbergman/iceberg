@@ -1,11 +1,9 @@
 package com.johnmbergman.iceberg
 
-import com.johnmbergman.iceberg.graphics.Material
-import com.johnmbergman.iceberg.graphics.Mesh
-import com.johnmbergman.iceberg.graphics.Model
 import com.johnmbergman.iceberg.graphics.Renderer
 import com.johnmbergman.iceberg.scene.Camera
 import com.johnmbergman.iceberg.scene.Entity
+import com.johnmbergman.iceberg.scene.ModelLoader
 import com.johnmbergman.iceberg.scene.Scene
 import org.joml.Vector4f
 import org.lwjgl.glfw.GLFW.*
@@ -13,79 +11,12 @@ import org.lwjglb.engine.MouseInput
 
 
 private const val MOUSE_SENSITIVITY = 0.1f
-private const val MOVEMENT_SPEED = 0.05f
-
-/**
- * Each face has its own four vertices so it can map the full texture.
- * Faces are wound counter-clockwise when viewed from outside the cube.
- */
-val TEST_CUBE = Mesh(
-    floatArrayOf(
-        // Front face
-        -0.5f, 0.5f, 0.5f,
-        -0.5f, -0.5f, 0.5f,
-        0.5f, -0.5f, 0.5f,
-        0.5f, 0.5f, 0.5f,
-        // Back face
-        0.5f, 0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, 0.5f, -0.5f,
-        // Right face
-        0.5f, 0.5f, 0.5f,
-        0.5f, -0.5f, 0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f, 0.5f, -0.5f,
-        // Left face
-        -0.5f, 0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f, 0.5f,
-        -0.5f, 0.5f, 0.5f,
-        // Top face
-        -0.5f, 0.5f, -0.5f,
-        -0.5f, 0.5f, 0.5f,
-        0.5f, 0.5f, 0.5f,
-        0.5f, 0.5f, -0.5f,
-        // Bottom face
-        -0.5f, -0.5f, 0.5f,
-        -0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, 0.5f,
-    ),
-    floatArrayOf(
-        // Front face
-        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-        // Back face
-        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-        // Right face
-        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-        // Left face
-        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-        // Top face
-        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-        // Bottom face
-        0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-    ),
-    intArrayOf(
-        // Front face
-        0, 1, 2, 2, 3, 0,
-        // Back face
-        4, 5, 6, 6, 7, 4,
-        // Right face
-        8, 9, 10, 10, 11, 8,
-        // Left face
-        12, 13, 14, 14, 15, 12,
-        // Top face
-        16, 17, 18, 18, 19, 16,
-        // Bottom face
-        20, 21, 22, 22, 23, 20,
-    )
-)
+private const val MOVEMENT_SPEED = 0.025f
 
 class TestGame: IAppLogic {
 
     private val displayInc = Vector4f()
-    private lateinit var cubeEntity: Entity
+    private val cubeEntities = mutableListOf<Entity>()
     private var rotation = 0.toDouble()
 
     fun start() {
@@ -95,15 +26,15 @@ class TestGame: IAppLogic {
     override fun onInit(window: Window, scene: Scene, renderer: Renderer) {
         window.mouseInput.isCaptured = true
 
-        val cubeModelId = "cube-model"
-        val cubeMaterial = Material(scene.textureCache.default)
-        cubeMaterial.meshList.add(TEST_CUBE)
-        val cubeModel = Model(cubeModelId, listOf(cubeMaterial))
+        val cubeModel = ModelLoader.loadModel("cube-model", "models/cube/cube.obj", scene.textureCache)
         scene.addModel(cubeModel)
 
-        cubeEntity = Entity("cube-entity", cubeModelId)
-        cubeEntity.setPosition(0f, 0f, -2f)
-        scene.addEntity(cubeEntity)
+        for (i in 0 until 10) {
+            val cubeEntity = Entity("cube-entity-$i", cubeModel.id)
+            cubeEntity.setPosition(i.toFloat(), 0f, -2f)
+            scene.addEntity(cubeEntity)
+            cubeEntities.add(cubeEntity)
+        }
     }
 
     override fun onInput(window: Window, scene: Scene, deltaMillis: Long) {
@@ -129,18 +60,20 @@ class TestGame: IAppLogic {
         val mouseInput: MouseInput = window.mouseInput
         val displVec = mouseInput.displVec
         camera.addRotation(
-            Math.toRadians((-displVec.x * MOUSE_SENSITIVITY).toDouble()).toFloat(),
-            Math.toRadians((-displVec.y * MOUSE_SENSITIVITY).toDouble()).toFloat()
+            Math.toRadians((displVec.x * MOUSE_SENSITIVITY).toDouble()).toFloat(),
+            Math.toRadians((displVec.y * MOUSE_SENSITIVITY).toDouble()).toFloat()
         )
 
         displayInc.mul(deltaMillis / 1_000.0f)
-        val entityPosition = cubeEntity.position
-        cubeEntity.setPosition(
-            displayInc.x + entityPosition.x,
-            displayInc.y + entityPosition.y,
-            displayInc.z + entityPosition.z)
-        cubeEntity.scale += displayInc.w
-        cubeEntity.updateModelMatrix()
+        cubeEntities.forEach { cubeEntity ->
+            val entityPosition = cubeEntity.position
+            cubeEntity.setPosition(
+                displayInc.x + entityPosition.x,
+                displayInc.y + entityPosition.y,
+                displayInc.z + entityPosition.z)
+            cubeEntity.scale += displayInc.w
+            cubeEntity.updateModelMatrix()
+        }
     }
 
     override fun onUpdate(window: Window, scene: Scene, deltaMillis: Long) {
@@ -148,6 +81,8 @@ class TestGame: IAppLogic {
         if (rotation > 360) {
             rotation = 0.0
         }
-        cubeEntity.setRotation(1f, 1f, 1f, Math.toRadians(rotation).toFloat())
+        cubeEntities.forEach { cubeEntity ->
+            cubeEntity.setRotation(1f, 1f, 1f, Math.toRadians(rotation).toFloat())
+        }
     }
 }
