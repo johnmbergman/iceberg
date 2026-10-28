@@ -8,6 +8,7 @@ import com.johnmbergman.iceberg.scene.Scene
 
 class Engine {
 
+    private val platform: Platform
     private val window: Window
     private val targetFramesPerSecond: Int = 30
     private val targetUpdatesPerSecond: Int = 30
@@ -22,7 +23,9 @@ class Engine {
         this.handler = handler
 
         logger.debug("Initializing game engine...")
-        window = Window("Game Window", onResize = ::resize)
+        platform = Platform()
+        logger.debug("Platform initialized")
+        window =Window("Game Window", onResize = ::resize)
         logger.debug("Window created: ${window.windowHandle}")
         renderer = OpenGLRenderer()
         logger.debug("Renderer initialized")
@@ -41,7 +44,7 @@ class Engine {
         var deltaFramesPerSecond = 0.0f
         var updateTime = initialTime
         while (running && !window.shouldClose()) {
-            window.pollEvents()
+            platform.pollEvents()
 
             val now = System.currentTimeMillis()
             deltaUpdate += (now - initialTime) / timeU
@@ -79,6 +82,9 @@ class Engine {
         logger.debug("Cleaning up window...")
         window.cleanup()
         logger.debug("Window cleaned up")
+        logger.debug("Cleaning up platform...")
+        platform.cleanup()
+        logger.debug("Platform cleaned up")
     }
 
     private fun resize() {

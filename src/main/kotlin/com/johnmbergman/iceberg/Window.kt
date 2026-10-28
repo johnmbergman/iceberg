@@ -22,10 +22,7 @@ import org.lwjgl.glfw.GLFW.glfwGetKey
 import org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor
 import org.lwjgl.glfw.GLFW.glfwGetVideoMode
 import org.lwjgl.glfw.GLFW.glfwGetWindowSize
-import org.lwjgl.glfw.GLFW.glfwInit
 import org.lwjgl.glfw.GLFW.glfwMakeContextCurrent
-import org.lwjgl.glfw.GLFW.glfwPollEvents
-import org.lwjgl.glfw.GLFW.glfwSetErrorCallback
 import org.lwjgl.glfw.GLFW.glfwSetFramebufferSizeCallback
 import org.lwjgl.glfw.GLFW.glfwSetKeyCallback
 import org.lwjgl.glfw.GLFW.glfwSetWindowPos
@@ -33,7 +30,6 @@ import org.lwjgl.glfw.GLFW.glfwSetWindowShouldClose
 import org.lwjgl.glfw.GLFW.glfwShowWindow
 import org.lwjgl.glfw.GLFW.glfwSwapBuffers
 import org.lwjgl.glfw.GLFW.glfwSwapInterval
-import org.lwjgl.glfw.GLFW.glfwTerminate
 import org.lwjgl.glfw.GLFW.glfwWindowHint
 import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
 import org.lwjgl.system.MemoryStack.stackPush
@@ -55,12 +51,6 @@ class Window {
     constructor(title: String, initialWidth: Int = 1024, initialHeight: Int = 768, fullscreen: Boolean = false, onResize: (() -> Unit)? = null) {
         this.onResize = onResize
 
-        // Initialize GLFW. Most GLFW functions will not work before doing this.
-        if ( !glfwInit() ) {
-            throw IllegalStateException("Unable to initialize GLFW");
-        }
-
-        // Initialize GLFW
         glfwDefaultWindowHints() // Optional, the current window hints are already default
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3)
@@ -101,10 +91,6 @@ class Window {
 
         // Detect when the window is resized
         glfwSetFramebufferSizeCallback(windowHandle) { _, width, height -> resize(width, height) }
-
-        glfwSetErrorCallback { error, description ->
-            System.err.println("GLFW error $error: $description")
-        }
 
         // Get the thread stack and push a new frame
         stackPush().use { stack ->
@@ -160,17 +146,10 @@ class Window {
     fun cleanup() {
         glfwFreeCallbacks(windowHandle)
         glfwDestroyWindow(windowHandle)
-        glfwTerminate()
-        glfwSetErrorCallback(null)?.free()
     }
 
     fun update() {
         glfwSwapBuffers(windowHandle)
-    }
-
-    // Is there a better way to do this?
-    fun pollEvents() {
-        glfwPollEvents()
     }
 
     fun isKeyPressed(keyCode: Int): Boolean {
