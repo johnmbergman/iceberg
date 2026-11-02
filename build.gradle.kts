@@ -8,6 +8,7 @@ version = "1.0-SNAPSHOT"
 
 val lwjglVersion = "3.4.3"
 val jomlVersion = "1.10.9"
+val imguiVersion = "1.92.7.1"
 
 val lwjglNatives = Pair(
     System.getProperty("os.name")!!,
@@ -31,6 +32,9 @@ val lwjglNatives = Pair(
     }
 }
 
+// imgui-java publishes no arm-specific natives (the macOS build is universal)
+val imguiNatives = lwjglNatives.removeSuffix("-arm64").removeSuffix("-arm32")
+
 repositories {
     mavenCentral()
 }
@@ -50,6 +54,9 @@ dependencies {
     runtimeOnly("org.lwjgl:lwjgl-assimp::$lwjglNatives")
 
     implementation("org.joml:joml:$jomlVersion")
+
+    implementation("io.github.spair:imgui-java-binding:$imguiVersion")
+    runtimeOnly("io.github.spair:imgui-java-$imguiNatives:$imguiVersion")
 
     testImplementation(kotlin("test"))
 }

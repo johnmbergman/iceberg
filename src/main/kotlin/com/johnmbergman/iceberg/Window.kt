@@ -4,13 +4,11 @@ import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MAJOR
 import org.lwjgl.glfw.GLFW.GLFW_CONTEXT_VERSION_MINOR
 import org.lwjgl.glfw.GLFW.GLFW_FALSE
-import org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
 import org.lwjgl.glfw.GLFW.GLFW_MAXIMIZED
 import org.lwjgl.glfw.GLFW.GLFW_OPENGL_CORE_PROFILE
 import org.lwjgl.glfw.GLFW.GLFW_OPENGL_FORWARD_COMPAT
 import org.lwjgl.glfw.GLFW.GLFW_OPENGL_PROFILE
 import org.lwjgl.glfw.GLFW.GLFW_PRESS
-import org.lwjgl.glfw.GLFW.GLFW_RELEASE
 import org.lwjgl.glfw.GLFW.GLFW_RESIZABLE
 import org.lwjgl.glfw.GLFW.GLFW_TRUE
 import org.lwjgl.glfw.GLFW.GLFW_VISIBLE
@@ -23,6 +21,7 @@ import org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor
 import org.lwjgl.glfw.GLFW.glfwGetVideoMode
 import org.lwjgl.glfw.GLFW.glfwGetWindowSize
 import org.lwjgl.glfw.GLFW.glfwMakeContextCurrent
+import org.lwjgl.glfw.GLFW.glfwSetCharCallback
 import org.lwjgl.glfw.GLFW.glfwSetFramebufferSizeCallback
 import org.lwjgl.glfw.GLFW.glfwSetKeyCallback
 import org.lwjgl.glfw.GLFW.glfwSetWindowPos
@@ -34,7 +33,7 @@ import org.lwjgl.glfw.GLFW.glfwWindowHint
 import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
-import org.lwjglb.engine.MouseInput
+import com.johnmbergman.iceberg.input.MouseInput
 
 
 class Window {
@@ -47,6 +46,9 @@ class Window {
         private set
 
     private val onResize: (() -> Unit)?
+    // GLFW allows one callback per event type, so the window owns them and fans events out to listeners
+    private val keyListeners = mutableListOf<(key: Int, action: Int, mods: Int) -> Unit>()
+    private val charListeners = mutableListOf<(codepoint: Int) -> Unit>()
 
     constructor(title: String, initialWidth: Int = 1024, initialHeight: Int = 768, fullscreen: Boolean = false, onResize: (() -> Unit)? = null) {
         this.onResize = onResize
@@ -80,13 +82,12 @@ class Window {
             throw RuntimeException("Failed to create the GLFW window")
         }
 
-        // Set up a key callback. It will be called every time a key is pressed, repeated or released.
-        // This will check for the release of an escape key, and will close the window.
-        // This should be removed when proper input handling is established in the engine.
-        glfwSetKeyCallback(windowHandle) { window, key, _, action, _ ->
-            if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-                glfwSetWindowShouldClose(window, true) // We will detect this in the rendering loop
-            }
+        // Key events fire on press, repeat and release; char events carry typed text after keyboard layout is applied
+        glfwSetKeyCallback(windowHandle) { _, key, _, action, mods ->
+            keyListeners.forEach { it(key, action, mods) }
+        }
+        glfwSetCharCallback(windowHandle) { _, codepoint ->
+            charListeners.forEach { it(codepoint) }
         }
 
         // Detect when the window is resized
@@ -150,6 +151,21 @@ class Window {
 
     fun update() {
         glfwSwapBuffers(windowHandle)
+    }
+
+    /** Listeners receive GLFW key codes, actions (press, repeat, release) and modifier bits. */
+    fun addKeyListener(listener: (key: Int, action: Int, mods: Int) -> Unit) {
+        keyListeners.add(listener)
+    }
+
+    /** Listeners receive Unicode code points of typed characters. */
+    fun addCharListener(listener: (codepoint: Int) -> Unit) {
+        charListeners.add(listener)
+    }
+
+    /** Asks the game loop to exit at the start of the next iteration. */
+    fun requestClose() {
+        glfwSetWindowShouldClose(windowHandle, true)
     }
 
     fun isKeyPressed(keyCode: Int): Boolean {

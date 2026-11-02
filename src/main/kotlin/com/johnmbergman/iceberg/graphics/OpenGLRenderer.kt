@@ -15,21 +15,25 @@ import org.lwjgl.opengl.GL11C.glViewport
 class OpenGLRenderer: Renderer {
 
     private val sceneRenderer: SceneRenderer
+    private val uiRenderer: UIRenderer
 
     constructor() {
         GL.createCapabilities()
         glEnable(GL_DEPTH_TEST)
         glCullFace(GL_BACK)
         sceneRenderer = SceneRenderer()
+        uiRenderer = UIRenderer()
     }
 
     override fun cleanup() {
         sceneRenderer.cleanup()
+        uiRenderer.cleanup()
     }
 
     override fun render(window: Window, scene: Scene) {
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
         glViewport(0, 0, window.width, window.height)
         sceneRenderer.render(scene)
+        uiRenderer.render(window)
     }
 }

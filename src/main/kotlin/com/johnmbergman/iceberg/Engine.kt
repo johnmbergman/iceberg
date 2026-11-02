@@ -5,6 +5,9 @@ import com.johnmbergman.iceberg.graphics.Renderer
 import com.johnmbergman.iceberg.monitoring.Logger
 import com.johnmbergman.iceberg.monitoring.SimpleLogger
 import com.johnmbergman.iceberg.scene.Scene
+import com.johnmbergman.iceberg.ui.UserInterface
+import org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
+import org.lwjgl.glfw.GLFW.GLFW_PRESS
 
 class Engine {
 
@@ -14,6 +17,7 @@ class Engine {
     private val targetFramesPerSecond: Int = 0
     private val targetUpdatesPerSecond: Int = 60
     private val renderer: Renderer
+    private val ui: UserInterface
     private val logger: Logger = SimpleLogger()
     private val handler: IAppLogic
 
@@ -28,11 +32,21 @@ class Engine {
         logger.debug("Platform initialized")
         window =Window("Game Window", onResize = ::resize)
         logger.debug("Window created: ${window.windowHandle}")
+        // The UI context must exist before the renderer, which builds the UI font atlas
+        ui = UserInterface(window)
+        logger.debug("User interface initialized")
         renderer = OpenGLRenderer()
         logger.debug("Renderer initialized")
         currentScene = Scene()
         resize()
-        handler.onInit(window, currentScene, renderer)
+        // Escape quits unless the UI is using the keyboard, e.g., to cancel text entry. This acts on press
+        // because ImGui releases the keyboard as soon as the text field closes, before the key comes back up.
+        window.addKeyListener { key, action, _ ->
+            if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS && !ui.wantsKeyboard) {
+                window.requestClose()
+            }
+        }
+        handler.onInit(window, currentScene, renderer, ui)
         running = true
     }
 
@@ -54,6 +68,7 @@ class Engine {
 
             if (targetFramesPerSecond <= 0 || deltaFramesPerSecond >= 1) {
                 window.mouseInput.input()
+                ui.beginFrame(now - inputTime)
                 handler.onInput(window, currentScene, now - inputTime)
                 inputTime = now
             }
@@ -66,6 +81,8 @@ class Engine {
             }
 
             if (targetFramesPerSecond <= 0 || deltaFramesPerSecond >= 1) {
+                handler.onDrawUI(window, currentScene)
+                ui.endFrame()
                 renderer.render(window, currentScene)
                 deltaFramesPerSecond--
                 window.update()
@@ -80,6 +97,8 @@ class Engine {
         handler.cleanup()
         logger.debug("Cleaning up game engine...")
         renderer.cleanup()
+        logger.debug("Cleaning up user interface...")
+        ui.cleanup()
         logger.debug("Cleaning up scene...")
         currentScene.cleanup()
         logger.debug("Cleaning up window...")

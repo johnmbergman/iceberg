@@ -1,4 +1,4 @@
-package org.lwjglb.engine
+package com.johnmbergman.iceberg.input
 
 import org.joml.Vector2f
 import org.lwjgl.glfw.GLFW
@@ -7,12 +7,18 @@ import org.lwjgl.glfw.GLFWCursorPosCallbackI
 class MouseInput(private val windowHandle: Long) {
     val currentPos: Vector2f = Vector2f()
     val displVec: Vector2f = Vector2f()
+    /** Scroll wheel / trackpad offset received since the previous [input] call; positive y scrolls up. */
+    val scrollDelta: Vector2f = Vector2f()
     var isLeftButtonPressed: Boolean
         private set
     private val previousPos: Vector2f = Vector2f()
     var isRightButtonPressed: Boolean
         private set
+    var isMiddleButtonPressed: Boolean
+        private set
     private var hasPreviousPos = false
+    // Accumulated by the scroll callback between input() calls, since several events can arrive per frame
+    private val pendingScroll: Vector2f = Vector2f()
 
     /**
      * When captured, the cursor is hidden and locked to the window, and movement is reported
@@ -32,6 +38,7 @@ class MouseInput(private val windowHandle: Long) {
     init {
         this.isLeftButtonPressed = false
         this.isRightButtonPressed = false
+        this.isMiddleButtonPressed = false
 
         GLFW.glfwSetCursorPosCallback(windowHandle, GLFWCursorPosCallbackI { handle: Long, xpos: Double, ypos: Double ->
             currentPos.x = xpos.toFloat()
@@ -41,13 +48,20 @@ class MouseInput(private val windowHandle: Long) {
             when (button) {
                 GLFW.GLFW_MOUSE_BUTTON_LEFT -> isLeftButtonPressed = action == GLFW.GLFW_PRESS
                 GLFW.GLFW_MOUSE_BUTTON_RIGHT -> isRightButtonPressed = action == GLFW.GLFW_PRESS
+                GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> isMiddleButtonPressed = action == GLFW.GLFW_PRESS
             }
+        }
+        GLFW.glfwSetScrollCallback(windowHandle) { _: Long, xoffset: Double, yoffset: Double ->
+            pendingScroll.x += xoffset.toFloat()
+            pendingScroll.y += yoffset.toFloat()
         }
     }
 
     fun input() {
         displVec.x = 0f
         displVec.y = 0f
+        scrollDelta.set(pendingScroll)
+        pendingScroll.zero()
         // Query hover state each frame; the cursor enter callback only fires on transitions,
         // so it misses a cursor that is already over the window when it opens.
         // A captured cursor's virtual position is unbounded, so hover doesn't apply.

@@ -1,9 +1,11 @@
 package com.johnmbergman.iceberg.graphics
 
 import org.joml.Matrix4fc
-import org.joml.Vector4f
+import org.joml.Vector2fc
+import org.joml.Vector4fc
 import org.lwjgl.opengl.GL20C.glGetUniformLocation
 import org.lwjgl.opengl.GL20C.glUniform1i
+import org.lwjgl.opengl.GL20C.glUniform2f
 import org.lwjgl.opengl.GL20C.glUniform4f
 import org.lwjgl.opengl.GL20C.glUniformMatrix4fv
 import org.lwjgl.system.MemoryStack
@@ -31,8 +33,12 @@ class UniformsMap(private val programId: Int) {
         glUniform1i(getLocation(name), value)
     }
 
-    fun setUniform(name: String, value: Vector4f) {
-        glUniform4f(getLocation(name), value.x, value.y, value.z, value.w)
+    fun setUniform(name: String, value: Vector2fc) {
+        glUniform2f(getLocation(name), value.x(), value.y())
+    }
+
+    fun setUniform(name: String, value: Vector4fc) {
+        glUniform4f(getLocation(name), value.x(), value.y(), value.z(), value.w())
     }
 
     private fun getLocation(name: String): Int {
