@@ -8,6 +8,7 @@ import com.johnmbergman.iceberg.scene.lighting.Light
 class Scene {
     val environment = Environment()
     var skyBox: SkyBox? = null
+    var fog: Fog = Fog()
     val lights: List<Light>
         field = mutableListOf<Light>()
 

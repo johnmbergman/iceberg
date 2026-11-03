@@ -4,18 +4,14 @@ import com.johnmbergman.iceberg.Engine
 import com.johnmbergman.iceberg.IAppLogic
 import com.johnmbergman.iceberg.Window
 import com.johnmbergman.iceberg.graphics.Renderer
-import com.johnmbergman.iceberg.scene.Camera
-import com.johnmbergman.iceberg.scene.Entity
-import com.johnmbergman.iceberg.scene.ModelLoader
-import com.johnmbergman.iceberg.scene.Scene
-import com.johnmbergman.iceberg.scene.SkyBox
+import com.johnmbergman.iceberg.input.MouseInput
+import com.johnmbergman.iceberg.scene.*
 import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
 import com.johnmbergman.iceberg.scene.lighting.PointLight
 import com.johnmbergman.iceberg.scene.lighting.SpotLight
 import com.johnmbergman.iceberg.ui.UserInterface
 import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW.*
-import com.johnmbergman.iceberg.input.MouseInput
 
 
 private const val MOUSE_SENSITIVITY = 0.1f
@@ -53,6 +49,8 @@ class TestGame: IAppLogic {
         skyBox.skyBoxEntity.scale = 50f
         skyBox.skyBoxEntity.updateModelMatrix()
         scene.skyBox = skyBox
+
+        scene.fog = Fog(true, Vector3f(0.5f, 0.5f, 0.5f), 0.05f)
 
         scene.environment.ambientColor.set(1f)
         scene.environment.ambientIntensity = 0.3f

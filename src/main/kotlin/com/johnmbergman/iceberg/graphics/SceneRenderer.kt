@@ -1,5 +1,6 @@
 package com.johnmbergman.iceberg.graphics
 
+import com.johnmbergman.iceberg.scene.Fog
 import com.johnmbergman.iceberg.scene.Scene
 import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
 import com.johnmbergman.iceberg.scene.lighting.PointLight
@@ -7,12 +8,13 @@ import com.johnmbergman.iceberg.scene.lighting.PositionalLight
 import com.johnmbergman.iceberg.scene.lighting.SpotLight
 import org.joml.Matrix4fc
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11C.GL_TRIANGLES
-import org.lwjgl.opengl.GL11C.GL_UNSIGNED_INT
-import org.lwjgl.opengl.GL11C.glDrawElements
+import org.lwjgl.opengl.GL11C.*
 import org.lwjgl.opengl.GL13C.GL_TEXTURE0
 import org.lwjgl.opengl.GL13C.glActiveTexture
+import org.lwjgl.opengl.GL14C.GL_FUNC_ADD
+import org.lwjgl.opengl.GL14C.glBlendEquation
 import org.lwjgl.opengl.GL30C.glBindVertexArray
+
 
 private const val PROJECTION_MATRIX_UNIFORM_NAME = "projectionMatrix"
 private const val VIEW_MATRIX_UNIFORM_NAME = "viewMatrix"
@@ -76,6 +78,11 @@ class SceneRenderer {
         uniforms.createUniform("$DIRECTIONAL_LIGHT_UNIFORM_NAME.color")
         uniforms.createUniform("$DIRECTIONAL_LIGHT_UNIFORM_NAME.direction")
         uniforms.createUniform("$DIRECTIONAL_LIGHT_UNIFORM_NAME.intensity")
+
+        // Fog uniforms
+        uniforms.createUniform("fog.activeFog");
+        uniforms.createUniform("fog.color");
+        uniforms.createUniform("fog.density");
     }
 
     /** Creates the uniforms for a GLSL `PointLight` struct, which spot lights also embed as `pl`. */
@@ -93,12 +100,21 @@ class SceneRenderer {
     }
 
     fun render(scene: Scene) {
+        glEnable(GL_BLEND);
+        glBlendEquation(GL_FUNC_ADD);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         shaderProgram.bind()
         uniforms.setUniform(PROJECTION_MATRIX_UNIFORM_NAME, scene.projection.projectionMatrix)
         uniforms.setUniform(VIEW_MATRIX_UNIFORM_NAME, scene.camera.viewMatrix);
         uniforms.setUniform(TEXTURE_SAMPLER_UNIFORM_NAME, 0)
         updateLights(scene)
         glActiveTexture(GL_TEXTURE0)
+
+        val fog: Fog = scene.fog
+        uniforms.setUniform("fog.activeFog", if (fog.active) 1 else 0)
+        uniforms.setUniform("fog.color", fog.color)
+        uniforms.setUniform("fog.density", fog.density)
+
         scene.modelMap.forEach { (_, model) ->
             model.materialList.forEach { material ->
                 uniforms.setUniform(MATERIAL_AMBIENT_UNIFORM_NAME, material.ambientColor)
@@ -117,6 +133,7 @@ class SceneRenderer {
         }
         glBindVertexArray(0)
         shaderProgram.unbind()
+        glDisable(GL_BLEND)
     }
 
     private fun updateLights(scene: Scene) {

@@ -47,6 +47,12 @@ struct DirLight
     vec3 direction;
     float intensity;
 };
+struct Fog
+{
+    int activeFog;
+    vec3 color;
+    float density;
+};
 
 uniform sampler2D textureSampler;
 uniform Material material;
@@ -54,6 +60,7 @@ uniform AmbientLight ambientLight;
 uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform SpotLight spotLights[MAX_SPOT_LIGHTS];
 uniform DirLight dirLight;
+uniform Fog fog;
 
 vec4 calcAmbient(AmbientLight ambientLight, vec4 ambient)
 {
@@ -115,6 +122,16 @@ vec4 calcDirLight(vec4 diffuse, vec4 specular, DirLight light, vec3 position, ve
     return calcLightColor(diffuse, specular, light.color, light.intensity, position, normalize(light.direction), normal);
 }
 
+vec4 calcFog(vec3 pos, vec4 color, Fog fog, vec3 ambientLight, DirLight dirLight) {
+    vec3 fogColor = fog.color * (ambientLight + dirLight.color * dirLight.intensity);
+    float distance = length(pos);
+    float fogFactor = 1.0 / exp((distance * fog.density) * (distance * fog.density));
+    fogFactor = clamp(fogFactor, 0.0, 1.0);
+
+    vec3 resultColor = mix(fogColor, color.xyz, fogFactor);
+    return vec4(resultColor.xyz, color.w);
+}
+
 void main()
 {
     vec4 text_color = texture(textureSampler, outTextureCoordinate);
@@ -140,4 +157,8 @@ void main()
         }
     }
     fragColor = ambient + diffuseSpecularComp;
+
+    if (fog.activeFog == 1) {
+        fragColor = calcFog(outPosition, fragColor, fog, ambientLight.color * ambientLight.factor, dirLight);
+    }
 }
