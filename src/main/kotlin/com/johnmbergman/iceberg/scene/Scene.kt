@@ -7,7 +7,7 @@ import com.johnmbergman.iceberg.scene.lighting.Light
 
 class Scene {
     val environment = Environment()
-
+    var skyBox: SkyBox? = null
     val lights: List<Light>
         field = mutableListOf<Light>()
 
@@ -29,13 +29,14 @@ class Scene {
     fun addLight(light: Light) {
         lights += light
     }
-    
+
     fun removeLight(light: Light) {
         lights -= light
     }
 
     fun cleanup() {
         modelMap.values.forEach { it.cleanup() }
+        skyBox?.cleanup()
         textureCache.cleanup()
     }
 

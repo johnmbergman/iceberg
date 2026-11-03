@@ -8,6 +8,7 @@ import com.johnmbergman.iceberg.scene.Camera
 import com.johnmbergman.iceberg.scene.Entity
 import com.johnmbergman.iceberg.scene.ModelLoader
 import com.johnmbergman.iceberg.scene.Scene
+import com.johnmbergman.iceberg.scene.SkyBox
 import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
 import com.johnmbergman.iceberg.scene.lighting.PointLight
 import com.johnmbergman.iceberg.scene.lighting.SpotLight
@@ -47,6 +48,11 @@ class TestGame: IAppLogic {
         cubeEntity.setPosition(0f, 0f, -2f)
         cubeEntity.updateModelMatrix()
         scene.addEntity(cubeEntity)
+
+        val skyBox = SkyBox("models/skybox/skybox.obj", scene.textureCache)
+        skyBox.skyBoxEntity.scale = 50f
+        skyBox.skyBoxEntity.updateModelMatrix()
+        scene.skyBox = skyBox
 
         scene.environment.ambientColor.set(1f)
         scene.environment.ambientIntensity = 0.3f

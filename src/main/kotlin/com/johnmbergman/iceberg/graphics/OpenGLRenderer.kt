@@ -16,6 +16,7 @@ class OpenGLRenderer: Renderer {
 
     private val sceneRenderer: SceneRenderer
     private val uiRenderer: UIRenderer
+    private val skyBoxRenderer: SkyBoxRenderer
 
     constructor() {
         GL.createCapabilities()
@@ -23,16 +24,19 @@ class OpenGLRenderer: Renderer {
         glCullFace(GL_BACK)
         sceneRenderer = SceneRenderer()
         uiRenderer = UIRenderer()
+        skyBoxRenderer = SkyBoxRenderer()
     }
 
     override fun cleanup() {
         sceneRenderer.cleanup()
         uiRenderer.cleanup()
+        skyBoxRenderer.cleanup()
     }
 
     override fun render(window: Window, scene: Scene) {
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
         glViewport(0, 0, window.width, window.height)
+        skyBoxRenderer.render(scene)
         sceneRenderer.render(scene)
         uiRenderer.render(window)
     }
