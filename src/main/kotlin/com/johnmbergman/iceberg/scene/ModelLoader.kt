@@ -81,22 +81,45 @@ object ModelLoader {
                 null, null, null, null, null
             )
             val texturePath = aiTexturePath.dataString()
-            if (texturePath.isNotEmpty()) {
-                return Material(textureCache[listOf(modelDirectory, File(texturePath).name).filter { it.isNotEmpty() }.joinToString("/")])
+            val hasTexture = texturePath.isNotEmpty()
+            val texture = if (hasTexture) {
+                textureCache[listOf(modelDirectory, File(texturePath).name).filter { it.isNotEmpty() }.joinToString("/")]
+            } else {
+                textureCache.default
+            }
+            val material = Material(texture)
+
+            val color = AIColor4D.calloc(stack)
+            fun readColor(key: String): Vector4f? =
+                if (aiGetMaterialColor(aiMaterial, key, aiTextureType_NONE, 0, color) == aiReturn_SUCCESS) {
+                    Vector4f(color.r(), color.g(), color.b(), color.a())
+                } else {
+                    null
+                }
+
+            readColor(AI_MATKEY_COLOR_AMBIENT)?.let { material.ambientColor = it }
+            readColor(AI_MATKEY_COLOR_SPECULAR)?.let { material.specularColor = it }
+            // A textured material takes its diffuse color from the texture, so keep the default there.
+            if (!hasTexture) {
+                readColor(AI_MATKEY_COLOR_DIFFUSE)?.let { material.diffuseColor = it }
             }
 
-            val material = Material(textureCache.default)
-            val color = AIColor4D.calloc(stack)
-            val result = aiGetMaterialColor(aiMaterial, AI_MATKEY_COLOR_DIFFUSE, aiTextureType_NONE, 0, color)
+            val shininessStrength = floatArrayOf(0f)
+            val max = intArrayOf(1)
+            val result = aiGetMaterialFloatArray(
+                aiMaterial, AI_MATKEY_SHININESS_STRENGTH, aiTextureType_NONE, 0, shininessStrength, max
+            )
             if (result == aiReturn_SUCCESS) {
-                material.diffuseColor = Vector4f(color.r(), color.g(), color.b(), color.a())
+                material.reflectance = shininessStrength[0]
             }
+
             return material
         }
     }
 
     private fun processMesh(aiMesh: AIMesh): Mesh {
         val vertices = processVertices(aiMesh)
+        val normals = processNormals(aiMesh)
         var textureCoordinates = processTextureCoordinates(aiMesh)
         val indices = processIndices(aiMesh)
 
@@ -106,7 +129,7 @@ object ModelLoader {
             textureCoordinates = FloatArray(numElements)
         }
 
-        return Mesh(vertices, textureCoordinates, indices)
+        return Mesh(vertices, normals, textureCoordinates, indices)
     }
 
     private fun processIndices(aiMesh: AIMesh): IntArray {
@@ -121,6 +144,20 @@ object ModelLoader {
             }
         }
         return indices.toIntArray()
+    }
+
+    private fun processNormals(aiMesh: AIMesh): FloatArray {
+        // aiProcess_GenSmoothNormals should always populate these, but fall back to empty slots just in case
+        val buffer = aiMesh.mNormals() ?: return FloatArray(aiMesh.mNumVertices() * 3)
+        val data = FloatArray(buffer.remaining() * 3)
+        var pos = 0
+        while (buffer.remaining() > 0) {
+            val normal = buffer.get()
+            data[pos++] = normal.x()
+            data[pos++] = normal.y()
+            data[pos++] = normal.z()
+        }
+        return data
     }
 
     private fun processTextureCoordinates(aiMesh: AIMesh): FloatArray {

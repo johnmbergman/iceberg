@@ -5,7 +5,10 @@ import org.joml.Vector4f
 class Material(val texture: Texture) {
     val meshList = mutableListOf<Mesh>()
 
+    var ambientColor: Vector4f = DEFAULT_COLOR
     var diffuseColor: Vector4f = DEFAULT_COLOR
+    var specularColor: Vector4f = DEFAULT_COLOR
+    var reflectance: Float = 0f
 
     fun cleanup() {
         meshList.forEach { it.cleanup() }

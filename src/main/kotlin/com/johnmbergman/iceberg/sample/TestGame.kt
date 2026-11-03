@@ -1,13 +1,18 @@
-package com.johnmbergman.iceberg
+package com.johnmbergman.iceberg.sample
 
+import com.johnmbergman.iceberg.Engine
+import com.johnmbergman.iceberg.IAppLogic
+import com.johnmbergman.iceberg.Window
 import com.johnmbergman.iceberg.graphics.Renderer
 import com.johnmbergman.iceberg.scene.Camera
 import com.johnmbergman.iceberg.scene.Entity
 import com.johnmbergman.iceberg.scene.ModelLoader
 import com.johnmbergman.iceberg.scene.Scene
+import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
+import com.johnmbergman.iceberg.scene.lighting.PointLight
+import com.johnmbergman.iceberg.scene.lighting.SpotLight
 import com.johnmbergman.iceberg.ui.UserInterface
-import imgui.ImGui
-import org.joml.Vector4f
+import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW.*
 import com.johnmbergman.iceberg.input.MouseInput
 
@@ -17,10 +22,8 @@ private const val MOVEMENT_SPEED = 0.025f
 
 class TestGame: IAppLogic {
 
-    private val displayInc = Vector4f()
-    private val cubeEntities = mutableListOf<Entity>()
-    private var rotation = 0.toDouble()
     private lateinit var ui: UserInterface
+    private lateinit var lightControls: LightControls
 
     fun start() {
         Engine(this).start()
@@ -39,12 +42,26 @@ class TestGame: IAppLogic {
         val cubeModel = ModelLoader.loadModel("cube-model", "models/cube/cube.obj", scene.textureCache)
         scene.addModel(cubeModel)
 
-        for (i in 0 until 10) {
-            val cubeEntity = Entity("cube-entity-$i", cubeModel.id)
-            cubeEntity.setPosition(i.toFloat(), 0f, -2f)
-            scene.addEntity(cubeEntity)
-            cubeEntities.add(cubeEntity)
-        }
+        // The cube never moves, so its model matrix only needs computing once
+        val cubeEntity = Entity("cube-entity", cubeModel.id)
+        cubeEntity.setPosition(0f, 0f, -2f)
+        cubeEntity.updateModelMatrix()
+        scene.addEntity(cubeEntity)
+
+        scene.environment.ambientColor.set(1f)
+        scene.environment.ambientIntensity = 0.3f
+        scene.addLight(DirectionalLight(direction = Vector3f(0f, 1f, 0f)))
+        scene.addLight(PointLight(position = Vector3f(0f, 0f, -1.4f)))
+        // Starts off (intensity 0); turn it up from the light controls
+        scene.addLight(
+            SpotLight(
+                position = Vector3f(0f, 0f, -1.4f),
+                direction = Vector3f(0f, 0f, -1f),
+                cutoffAngleDegrees = 140f,
+                intensity = 0f,
+            )
+        )
+        lightControls = LightControls(scene)
     }
 
     override fun onInput(window: Window, scene: Scene, deltaMillis: Long) {
@@ -77,30 +94,9 @@ class TestGame: IAppLogic {
                 Math.toRadians((displVec.y * MOUSE_SENSITIVITY).toDouble()).toFloat()
             )
         }
-
-        displayInc.mul(deltaMillis / 1_000.0f)
-        cubeEntities.forEach { cubeEntity ->
-            val entityPosition = cubeEntity.position
-            cubeEntity.setPosition(
-                displayInc.x + entityPosition.x,
-                displayInc.y + entityPosition.y,
-                displayInc.z + entityPosition.z)
-            cubeEntity.scale += displayInc.w
-            cubeEntity.updateModelMatrix()
-        }
     }
 
     override fun onDrawUI(window: Window, scene: Scene) {
-        ImGui.showDemoWindow()
-    }
-
-    override fun onUpdate(window: Window, scene: Scene, deltaMillis: Long) {
-        rotation += 1.5f
-        if (rotation > 360) {
-            rotation = 0.0
-        }
-        cubeEntities.forEach { cubeEntity ->
-            cubeEntity.setRotation(1f, 1f, 1f, Math.toRadians(rotation).toFloat())
-        }
+        lightControls.draw()
     }
 }

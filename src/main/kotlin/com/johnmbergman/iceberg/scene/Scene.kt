@@ -3,8 +3,14 @@ package com.johnmbergman.iceberg.scene
 import com.johnmbergman.iceberg.graphics.Model
 import com.johnmbergman.iceberg.graphics.Projection
 import com.johnmbergman.iceberg.graphics.TextureCache
+import com.johnmbergman.iceberg.scene.lighting.Light
 
 class Scene {
+    val environment = Environment()
+
+    val lights: List<Light>
+        field = mutableListOf<Light>()
+
     val textureCache = TextureCache()
 
     val modelMap = mutableMapOf<String, Model>()
@@ -18,6 +24,14 @@ class Scene {
 
     fun addModel(model: Model) {
         modelMap[model.id] = model
+    }
+
+    fun addLight(light: Light) {
+        lights += light
+    }
+    
+    fun removeLight(light: Light) {
+        lights -= light
     }
 
     fun cleanup() {
