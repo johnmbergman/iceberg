@@ -1,9 +1,9 @@
 package com.johnmbergman.iceberg.graphics
 
+import com.johnmbergman.iceberg.math.Color
 import org.joml.Matrix4fc
 import org.joml.Vector2fc
 import org.joml.Vector3fc
-import org.joml.Vector4fc
 import org.lwjgl.opengl.GL20C.glGetUniformLocation
 import org.lwjgl.opengl.GL20C.glUniform1f
 import org.lwjgl.opengl.GL20C.glUniform1i
@@ -48,8 +48,14 @@ class UniformsMap(private val programId: Int) {
         glUniform3f(getLocation(name), value.x(), value.y(), value.z())
     }
 
-    fun setUniform(name: String, value: Vector4fc) {
-        glUniform4f(getLocation(name), value.x(), value.y(), value.z(), value.w())
+    /** Uploads all four channels; use for `vec4` uniforms. */
+    fun setUniform(name: String, value: Color) {
+        glUniform4f(getLocation(name), value.r, value.g, value.b, value.a)
+    }
+
+    /** Uploads red, green and blue only; use for `vec3` uniforms. */
+    fun setUniformRgb(name: String, value: Color) {
+        glUniform3f(getLocation(name), value.r, value.g, value.b)
     }
 
     private fun getLocation(name: String): Int {

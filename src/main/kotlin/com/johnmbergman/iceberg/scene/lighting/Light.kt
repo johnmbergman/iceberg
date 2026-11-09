@@ -1,8 +1,8 @@
 package com.johnmbergman.iceberg.scene.lighting
 
-import org.joml.Vector3f
+import com.johnmbergman.iceberg.math.Color
 
 sealed interface Light {
-    val color: Vector3f
+    var color: Color
     var intensity: Float
 }

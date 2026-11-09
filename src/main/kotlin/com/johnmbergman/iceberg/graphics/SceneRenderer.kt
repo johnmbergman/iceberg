@@ -118,7 +118,7 @@ class SceneRenderer(private val textureCache: TextureCache) {
 
         val fog: Fog = scene.fog
         uniforms.setUniform("fog.activeFog", if (fog.active) 1 else 0)
-        uniforms.setUniform("fog.color", fog.color)
+        uniforms.setUniformRgb("fog.color", fog.color)
         uniforms.setUniform("fog.density", fog.density)
 
         scene.modelMap.forEach { (_, model) ->
@@ -160,7 +160,7 @@ class SceneRenderer(private val textureCache: TextureCache) {
 
         val environment = scene.environment
         uniforms.setUniform("$AMBIENT_LIGHT_UNIFORM_NAME.factor", environment.ambientIntensity)
-        uniforms.setUniform("$AMBIENT_LIGHT_UNIFORM_NAME.color", environment.ambientColor)
+        uniforms.setUniformRgb("$AMBIENT_LIGHT_UNIFORM_NAME.color", environment.ambientColor)
 
         // The shader supports a single directional light; any extras are ignored
         updateDirectionalLight(scene.lights.firstNotNullOfOrNull { it as? DirectionalLight }, viewMatrix)
@@ -184,7 +184,7 @@ class SceneRenderer(private val textureCache: TextureCache) {
             return
         }
         viewMatrix.transformDirection(light.direction, viewSpaceVector)
-        uniforms.setUniform("$name.color", light.color)
+        uniforms.setUniformRgb("$name.color", light.color)
         uniforms.setUniform("$name.direction", viewSpaceVector)
         uniforms.setUniform("$name.intensity", light.intensity)
     }
@@ -201,7 +201,7 @@ class SceneRenderer(private val textureCache: TextureCache) {
         }
         viewMatrix.transformPosition(light.position, viewSpaceVector)
         uniforms.setUniform("$name.position", viewSpaceVector)
-        uniforms.setUniform("$name.color", light.color)
+        uniforms.setUniformRgb("$name.color", light.color)
         uniforms.setUniform("$name.intensity", light.intensity)
         uniforms.setUniform("$name.att.constant", light.attenuation.constant)
         uniforms.setUniform("$name.att.linear", light.attenuation.linear)

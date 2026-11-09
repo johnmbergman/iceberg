@@ -4,7 +4,7 @@ import com.johnmbergman.iceberg.graphics.Material
 import com.johnmbergman.iceberg.graphics.Mesh
 import com.johnmbergman.iceberg.graphics.Model
 import com.johnmbergman.iceberg.graphics.TextureCache
-import org.joml.Vector4f
+import com.johnmbergman.iceberg.math.Color
 import org.lwjgl.assimp.AIColor4D
 import org.lwjgl.assimp.AIMaterial
 import org.lwjgl.assimp.AIMesh
@@ -90,9 +90,9 @@ object ModelLoader {
             val material = Material(texture)
 
             val color = AIColor4D.calloc(stack)
-            fun readColor(key: String): Vector4f? =
+            fun readColor(key: String): Color? =
                 if (aiGetMaterialColor(aiMaterial, key, aiTextureType_NONE, 0, color) == aiReturn_SUCCESS) {
-                    Vector4f(color.r(), color.g(), color.b(), color.a())
+                    Color(color.r(), color.g(), color.b(), color.a())
                 } else {
                     null
                 }

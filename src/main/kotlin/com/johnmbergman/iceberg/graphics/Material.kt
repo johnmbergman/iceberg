@@ -1,7 +1,6 @@
 package com.johnmbergman.iceberg.graphics
 
-import org.joml.Vector4f
-import org.joml.Vector4fc
+import com.johnmbergman.iceberg.math.Color
 
 class Material(val texture: Texture) {
     val meshList = mutableListOf<Mesh>()
@@ -9,29 +8,18 @@ class Material(val texture: Texture) {
     var normalMapPath: String = DEFAULT_NORMAL_MAP_PATH
     var reflectance: Float = 0f
 
-    // Each material owns its colors; the public properties are read-only views of them.
-    private val ambient = Vector4f(DEFAULT_COLOR)
-    private val diffuse = Vector4f(DEFAULT_COLOR)
-    private val specular = Vector4f(DEFAULT_COLOR)
-
-    var ambientColor: Vector4fc
-        get() = ambient
-        set(value) { ambient.set(value) }
-
-    var diffuseColor: Vector4fc
-        get() = diffuse
-        set(value) { diffuse.set(value) }
-
-    var specularColor: Vector4fc
-        get() = specular
-        set(value) { specular.set(value) }
+    // Colors are immutable, so materials can safely share them, including the default
+    var ambientColor: Color = DEFAULT_COLOR
+    var diffuseColor: Color = DEFAULT_COLOR
+    var specularColor: Color = DEFAULT_COLOR
 
     fun cleanup() {
         meshList.forEach { it.cleanup() }
     }
 
     companion object {
-        private val DEFAULT_COLOR: Vector4fc = Vector4f(0f, 0f, 0f, 1f)
+        /** Black, because scene.frag adds material colors to the texture color; black adds nothing to RGB. */
+        private val DEFAULT_COLOR = Color.BLACK
         const val DEFAULT_NORMAL_MAP_PATH = ""
     }
 }

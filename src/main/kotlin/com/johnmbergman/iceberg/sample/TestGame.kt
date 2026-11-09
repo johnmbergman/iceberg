@@ -6,6 +6,7 @@ import com.johnmbergman.iceberg.Window
 import com.johnmbergman.iceberg.graphics.Renderer
 import com.johnmbergman.iceberg.graphics.TextureCache
 import com.johnmbergman.iceberg.input.MouseInput
+import com.johnmbergman.iceberg.math.Color
 import com.johnmbergman.iceberg.scene.*
 import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
 import com.johnmbergman.iceberg.ui.UserInterface
@@ -62,7 +63,7 @@ class TestGame: IAppLogic {
         wallRightEntity.updateModelMatrix()
         scene.addEntity(wallRightEntity)
 
-        scene.environment.ambientColor.set(1f)
+        scene.environment.ambientColor = Color.WHITE
         scene.environment.ambientIntensity = 0.2f
         dirLight = DirectionalLight(direction = Vector3f(1f, 1f, 0f), intensity = 1f)
         scene.addLight(dirLight)

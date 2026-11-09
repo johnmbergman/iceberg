@@ -1,5 +1,6 @@
 package com.johnmbergman.iceberg.sample
 
+import com.johnmbergman.iceberg.math.Color
 import com.johnmbergman.iceberg.scene.Scene
 import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
 import com.johnmbergman.iceberg.scene.lighting.PointLight
@@ -30,7 +31,7 @@ class LightControls(private val scene: Scene) {
         if (ImGui.collapsingHeader("Ambient Light")) {
             val environment = scene.environment
             sliderFloat("Ambient factor", environment.ambientIntensity, 0f, 1f) { environment.ambientIntensity = it }
-            colorEdit("Ambient color", environment.ambientColor)
+            colorEdit("Ambient color", environment.ambientColor) { environment.ambientColor = it }
         }
 
         if (ImGui.collapsingHeader("Point Light")) {
@@ -39,7 +40,7 @@ class LightControls(private val scene: Scene) {
                 ImGui.text("No point light in the scene")
             } else {
                 vectorSliders("Point Light", light.position, -10f, 10f)
-                colorEdit("Point Light color", light.color)
+                colorEdit("Point Light color", light.color) { light.color = it }
                 sliderFloat("Point Light Intensity", light.intensity, 0f, 1f) { light.intensity = it }
             }
         }
@@ -50,7 +51,7 @@ class LightControls(private val scene: Scene) {
                 ImGui.text("No spot light in the scene")
             } else {
                 vectorSliders("Spot Light", light.position, -10f, 10f)
-                colorEdit("Spot Light color", light.color)
+                colorEdit("Spot Light color", light.color) { light.color = it }
                 sliderFloat("Spot Light Intensity", light.intensity, 0f, 1f) { light.intensity = it }
                 ImGui.separator()
                 // The angle is measured from the cone's center, so 180° already lights everything
@@ -67,7 +68,7 @@ class LightControls(private val scene: Scene) {
                 ImGui.text("No directional light in the scene")
             } else {
                 vectorSliders("Dir Light", light.direction, -1f, 1f)
-                colorEdit("Dir Light color", light.color)
+                colorEdit("Dir Light color", light.color) { light.color = it }
                 sliderFloat("Dir Light Intensity", light.intensity, 0f, 1f) { light.intensity = it }
             }
         }
@@ -98,12 +99,13 @@ class LightControls(private val scene: Scene) {
         sliderFloat("$label - z", vector.z, min, max) { vector.z = it }
     }
 
-    private fun colorEdit(label: String, color: Vector3f) {
-        colorValue[0] = color.x
-        colorValue[1] = color.y
-        colorValue[2] = color.z
+    /** Colors are immutable, so an edit hands [onChange] a new color; alpha is kept as is. */
+    private inline fun colorEdit(label: String, color: Color, onChange: (Color) -> Unit) {
+        colorValue[0] = color.r
+        colorValue[1] = color.g
+        colorValue[2] = color.b
         if (ImGui.colorEdit3(label, colorValue)) {
-            color.set(colorValue[0], colorValue[1], colorValue[2])
+            onChange(color.copy(r = colorValue[0], g = colorValue[1], b = colorValue[2]))
         }
     }
 }
