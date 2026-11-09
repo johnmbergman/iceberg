@@ -3,6 +3,7 @@ package com.johnmbergman.iceberg.sample
 import com.johnmbergman.iceberg.Engine
 import com.johnmbergman.iceberg.IAppLogic
 import com.johnmbergman.iceberg.Window
+import com.johnmbergman.iceberg.graphics.ModelUploader
 import com.johnmbergman.iceberg.graphics.Renderer
 import com.johnmbergman.iceberg.graphics.TextureCache
 import com.johnmbergman.iceberg.input.MouseInput
@@ -42,7 +43,7 @@ class TestGame: IAppLogic {
         }
 
         // The same wall with and without a normal map, side by side, to compare the lighting
-        val wallNoNormalsModel = ModelLoader.loadModel(
+        val wallNoNormalsModel = ModelUploader.loadModel(
             "quad-no-normals-model", "models/wall/wall_nonormals.obj", textureCache
         )
         scene.addModel(wallNoNormalsModel)
@@ -54,7 +55,7 @@ class TestGame: IAppLogic {
         wallLeftEntity.updateModelMatrix()
         scene.addEntity(wallLeftEntity)
 
-        val wallModel = ModelLoader.loadModel("quad-model", "models/wall/wall.obj", textureCache)
+        val wallModel = ModelUploader.loadModel("quad-model", "models/wall/wall.obj", textureCache)
         scene.addModel(wallModel)
 
         val wallRightEntity = Entity("wall-right-entity", wallModel.id)

@@ -127,15 +127,11 @@ class SceneRenderer(private val textureCache: TextureCache) {
                 uniforms.setUniform(MATERIAL_DIFFUSE_UNIFORM_NAME, material.diffuseColor)
                 uniforms.setUniform(MATERIAL_SPECULAR_UNIFORM_NAME, material.specularColor)
                 uniforms.setUniform(MATERIAL_REFLECTANCE_UNIFORM_NAME, material.reflectance)
-                uniforms.setUniform(MATERIAL_NORMAL_MAP_UNIFORM_NAME, if (material.normalMapPath.isNotEmpty()) 1 else 0)
+                uniforms.setUniform(MATERIAL_NORMAL_MAP_UNIFORM_NAME, if (material.normalMap != null) 1 else 0)
                 // Bind a texture to unit 1 even without a normal map. The shader doesn't sample it then
                 // (hasNormalMap is 0), but some drivers, such as macOS's, still warn when a sampler's unit
                 // has no usable texture. The default texture is just a placeholder to keep them quiet.
-                val normalMapTexture = if (material.normalMapPath.isNotEmpty()) {
-                    textureCache[material.normalMapPath]
-                } else {
-                    textureCache.default
-                }
+                val normalMapTexture = material.normalMap ?: textureCache.default
                 glActiveTexture(GL_TEXTURE1)
                 normalMapTexture.bind()
 
