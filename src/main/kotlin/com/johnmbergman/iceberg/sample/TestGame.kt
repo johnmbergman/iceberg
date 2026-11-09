@@ -7,8 +7,6 @@ import com.johnmbergman.iceberg.graphics.Renderer
 import com.johnmbergman.iceberg.input.MouseInput
 import com.johnmbergman.iceberg.scene.*
 import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
-import com.johnmbergman.iceberg.scene.lighting.PointLight
-import com.johnmbergman.iceberg.scene.lighting.SpotLight
 import com.johnmbergman.iceberg.ui.UserInterface
 import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW.*
@@ -16,11 +14,16 @@ import org.lwjgl.glfw.GLFW.*
 
 private const val MOUSE_SENSITIVITY = 0.1f
 private const val MOVEMENT_SPEED = 0.025f
+private const val LIGHT_ANGLE_STEP = 2.5f
 
 class TestGame: IAppLogic {
 
     private lateinit var ui: UserInterface
     private lateinit var lightControls: LightControls
+    private lateinit var dirLight: DirectionalLight
+
+    /** Angle of the directional light from straight overhead, in degrees; -90 to 90. */
+    private var lightAngle = 0f
 
     fun start() {
         Engine(this).start()
@@ -36,35 +39,40 @@ class TestGame: IAppLogic {
             }
         }
 
-        val cubeModel = ModelLoader.loadModel("cube-model", "models/cube/cube.obj", scene.textureCache)
-        scene.addModel(cubeModel)
+        // The same wall with and without a normal map, side by side, to compare the lighting
+        val wallNoNormalsModel = ModelLoader.loadModel(
+            "quad-no-normals-model", "models/wall/wall_nonormals.obj", scene.textureCache
+        )
+        scene.addModel(wallNoNormalsModel)
 
-        // The cube never moves, so its model matrix only needs computing once
-        val cubeEntity = Entity("cube-entity", cubeModel.id)
-        cubeEntity.setPosition(0f, 0f, -2f)
-        cubeEntity.updateModelMatrix()
-        scene.addEntity(cubeEntity)
+        // The walls never move, so their model matrices only need computing once
+        val wallLeftEntity = Entity("wall-left-entity", wallNoNormalsModel.id)
+        wallLeftEntity.setPosition(-3f, 0f, 0f)
+        wallLeftEntity.scale = 2f
+        wallLeftEntity.updateModelMatrix()
+        scene.addEntity(wallLeftEntity)
 
-        val skyBox = SkyBox("models/skybox/skybox.obj", scene.textureCache)
-        skyBox.skyBoxEntity.scale = 50f
-        skyBox.skyBoxEntity.updateModelMatrix()
-        scene.skyBox = skyBox
+        val wallModel = ModelLoader.loadModel("quad-model", "models/wall/wall.obj", scene.textureCache)
+        scene.addModel(wallModel)
 
-        scene.fog = Fog(true, Vector3f(0.5f, 0.5f, 0.5f), 0.05f)
+        val wallRightEntity = Entity("wall-right-entity", wallModel.id)
+        wallRightEntity.setPosition(3f, 0f, 0f)
+        wallRightEntity.scale = 2f
+        wallRightEntity.updateModelMatrix()
+        scene.addEntity(wallRightEntity)
 
         scene.environment.ambientColor.set(1f)
-        scene.environment.ambientIntensity = 0.3f
-        scene.addLight(DirectionalLight(direction = Vector3f(0f, 1f, 0f)))
-        scene.addLight(PointLight(position = Vector3f(0f, 0f, -1.4f)))
-        // Starts off (intensity 0); turn it up from the light controls
-        scene.addLight(
-            SpotLight(
-                position = Vector3f(0f, 0f, -1.4f),
-                direction = Vector3f(0f, 0f, -1f),
-                cutoffAngleDegrees = 140f,
-                intensity = 0f,
-            )
-        )
+        scene.environment.ambientIntensity = 0.2f
+        dirLight = DirectionalLight(direction = Vector3f(1f, 1f, 0f), intensity = 1f)
+        scene.addLight(dirLight)
+        lightAngle = -35f
+        updateLightDirection()
+
+        // Look straight down at the walls from above
+        val camera = scene.camera
+        camera.moveUp(5f)
+        camera.addRotation(Math.toRadians(90.0).toFloat(), 0f)
+
         lightControls = LightControls(scene)
     }
 
@@ -88,6 +96,12 @@ class TestGame: IAppLogic {
             } else if (window.isKeyPressed(GLFW_KEY_DOWN)) {
                 camera.moveDown(move)
             }
+            // Left/right swing the directional light across the sky
+            if (window.isKeyPressed(GLFW_KEY_LEFT)) {
+                lightAngle = (lightAngle - LIGHT_ANGLE_STEP).coerceAtLeast(-90f)
+            } else if (window.isKeyPressed(GLFW_KEY_RIGHT)) {
+                lightAngle = (lightAngle + LIGHT_ANGLE_STEP).coerceAtMost(90f)
+            }
         }
 
         if (!ui.wantsMouse) {
@@ -98,6 +112,14 @@ class TestGame: IAppLogic {
                 Math.toRadians((displVec.y * MOUSE_SENSITIVITY).toDouble()).toFloat()
             )
         }
+
+        updateLightDirection()
+    }
+
+    private fun updateLightDirection() {
+        val angleRadians = Math.toRadians(lightAngle.toDouble())
+        dirLight.direction.x = Math.sin(angleRadians).toFloat()
+        dirLight.direction.y = Math.cos(angleRadians).toFloat()
     }
 
     override fun onDrawUI(window: Window, scene: Scene) {

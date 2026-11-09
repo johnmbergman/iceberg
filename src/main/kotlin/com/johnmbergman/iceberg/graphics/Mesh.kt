@@ -13,67 +13,45 @@ import org.lwjgl.opengl.GL30
 import org.lwjgl.opengl.GL30C.glBindVertexArray
 import org.lwjgl.opengl.GL30C.glDeleteVertexArrays
 import org.lwjgl.opengl.GL30C.glGenVertexArrays
-import org.lwjgl.system.MemoryUtil
-import java.nio.FloatBuffer
-import java.nio.IntBuffer
 
-class Mesh {
-    val numberOfVertices: Int
-    val vertexArrayObjectId: Int
-    val vertexBufferObjectIdList: MutableList<Int>
+class Mesh(
+    positions: FloatArray,
+    normals: FloatArray,
+    tangents: FloatArray,
+    bitangents: FloatArray,
+    textureCoordinates: FloatArray,
+    indices: IntArray,
+) {
+    val numberOfVertices = indices.size
+    val vertexArrayObjectId = glGenVertexArrays()
+    private val vertexBufferObjectIdList: MutableList<Int> = mutableListOf()
 
-    constructor(positions: FloatArray, normals: FloatArray, textureCoordinates: FloatArray, indices: IntArray) {
-        this.numberOfVertices = indices.size
-
-        vertexBufferObjectIdList = mutableListOf()
-        vertexArrayObjectId = glGenVertexArrays()
+    init {
         glBindVertexArray(vertexArrayObjectId)
 
-        // Positions VBO
-        val positionsVboId = glGenBuffers()
-        vertexBufferObjectIdList.add(positionsVboId)
-        val positionsBuffer: FloatBuffer = MemoryUtil.memCallocFloat(positions.size)
-        positionsBuffer.put(0, positions)
-        glBindBuffer(GL_ARRAY_BUFFER, positionsVboId);
-        glBufferData(GL_ARRAY_BUFFER, positionsBuffer, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-
-        // Normals VBO
-        val normalsVboId = glGenBuffers()
-        vertexBufferObjectIdList.add(normalsVboId)
-        val normalsBuffer: FloatBuffer = MemoryUtil.memCallocFloat(normals.size)
-        normalsBuffer.put(0, normals)
-        glBindBuffer(GL_ARRAY_BUFFER, normalsVboId)
-        glBufferData(GL_ARRAY_BUFFER, normalsBuffer, GL_STATIC_DRAW)
-        glEnableVertexAttribArray(1)
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0)
-
-        // Texture coordinates VBO
-        val textureCoordinatesVboId = glGenBuffers()
-        vertexBufferObjectIdList.add(textureCoordinatesVboId)
-        val textureCoordinatesBuffer: FloatBuffer = MemoryUtil.memCallocFloat(textureCoordinates.size)
-        textureCoordinatesBuffer.put(0, textureCoordinates)
-        glBindBuffer(GL_ARRAY_BUFFER, textureCoordinatesVboId);
-        glBufferData(GL_ARRAY_BUFFER, textureCoordinatesBuffer, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, false, 0, 0);
-
-        // Index VBO
-        val indicesVboId = glGenBuffers()
-        vertexBufferObjectIdList.add(indicesVboId)
-        val indicesBuffer: IntBuffer = MemoryUtil.memCallocInt(indices.size)
-        indicesBuffer.put(0, indices)
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indicesVboId);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
+        createAttributeBuffer(0, 3, positions)
+        createAttributeBuffer(1, 3, normals)
+        createAttributeBuffer(2, 3, tangents)
+        createAttributeBuffer(3, 3, bitangents)
+        createAttributeBuffer(4, 2, textureCoordinates)
+        createIndexBuffer(indices)
 
         glBindBuffer(GL_ARRAY_BUFFER, 0)
         glBindVertexArray(0)
+    }
 
-        MemoryUtil.memFree(positionsBuffer)
-        MemoryUtil.memFree(normalsBuffer)
-        MemoryUtil.memFree(textureCoordinatesBuffer)
-        MemoryUtil.memFree(indicesBuffer)
+    private fun createAttributeBuffer(index: Int, componentsPerVertex: Int, data: FloatArray) {
+        val id = glGenBuffers().also(vertexBufferObjectIdList::add)
+        glBindBuffer(GL_ARRAY_BUFFER, id)
+        glBufferData(GL_ARRAY_BUFFER, data, GL_STATIC_DRAW)
+        glEnableVertexAttribArray(index)
+        glVertexAttribPointer(index, componentsPerVertex, GL_FLOAT, false, 0, 0)
+    }
+
+    private fun createIndexBuffer(indices: IntArray) {
+        val id = glGenBuffers().also(vertexBufferObjectIdList::add)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, id)
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW)
     }
 
     fun cleanup() {

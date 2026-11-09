@@ -66,7 +66,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("com.johnmbergman.iceberg.MainKt")
+    mainClass.set("com.johnmbergman.iceberg.sample.MainKt")
     // GLFW on macOS requires the main thread to be the first thread
     if (lwjglNatives.startsWith("natives-macos")) {
         applicationDefaultJvmArgs = listOf("-XstartOnFirstThread")

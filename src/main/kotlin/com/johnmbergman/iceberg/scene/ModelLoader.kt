@@ -113,6 +113,16 @@ object ModelLoader {
                 material.reflectance = shininessStrength[0]
             }
 
+            val aiNormalMapPath = AIString.calloc(stack)
+            aiGetMaterialTexture(aiMaterial, aiTextureType_NORMALS, 0, aiNormalMapPath, null as IntBuffer?, null, null, null, null, null)
+            val normalMapPath = aiNormalMapPath.dataString()
+            if (normalMapPath.isNotEmpty()) {
+                val resolvedNormalMapPath =
+                    listOf(modelDirectory, File(normalMapPath).name).filter { it.isNotEmpty() }.joinToString("/")
+                material.normalMapPath = resolvedNormalMapPath
+                // Load now rather than on first render, like the diffuse texture above
+                textureCache[resolvedNormalMapPath]
+            }
             return material
         }
     }
@@ -122,6 +132,8 @@ object ModelLoader {
         val normals = processNormals(aiMesh)
         var textureCoordinates = processTextureCoordinates(aiMesh)
         val indices = processIndices(aiMesh)
+        val tangents = processTangents(aiMesh, normals)
+        val bitangents = processBitangents(aiMesh, normals)
 
         // Texture coordinates may not have been populated. We need at least the empty slots
         if (textureCoordinates.isEmpty()) {
@@ -129,7 +141,7 @@ object ModelLoader {
             textureCoordinates = FloatArray(numElements)
         }
 
-        return Mesh(vertices, normals, textureCoordinates, indices)
+        return Mesh(vertices, normals, tangents, bitangents, textureCoordinates, indices)
     }
 
     private fun processIndices(aiMesh: AIMesh): IntArray {
@@ -181,6 +193,44 @@ object ModelLoader {
             data[pos++] = textCoord.x()
             data[pos++] = textCoord.y()
             data[pos++] = textCoord.z()
+        }
+        return data
+    }
+
+    private fun processTangents(aiMesh: AIMesh, normals: FloatArray): FloatArray {
+        // Assimp can't calculate tangents for meshes without texture coordinates, so fall back to empty slots
+        val buffer = aiMesh.mTangents() ?: return FloatArray(normals.size)
+        var data = FloatArray(buffer.remaining() * 3)
+        var pos = 0
+        while (buffer.remaining() > 0) {
+            val aiTangent = buffer.get()
+            data[pos++] = aiTangent.x()
+            data[pos++] = aiTangent.y()
+            data[pos++] = aiTangent.z()
+        }
+
+        // Assimp may not calculate tangents with models that do not have texture coordinates. Just create empty values
+        if (data.size == 0) {
+            data = FloatArray(normals.size)
+        }
+        return data
+    }
+
+    private fun processBitangents(aiMesh: AIMesh, normals: FloatArray): FloatArray {
+        // Assimp can't calculate bitangents for meshes without texture coordinates, so fall back to empty slots
+        val buffer = aiMesh.mBitangents() ?: return FloatArray(normals.size)
+        var data = FloatArray(buffer.remaining() * 3)
+        var pos = 0
+        while (buffer.remaining() > 0) {
+            val aiBitangent = buffer.get()
+            data[pos++] = aiBitangent.x()
+            data[pos++] = aiBitangent.y()
+            data[pos++] = aiBitangent.z()
+        }
+
+        // Assimp may not calculate tangents with models that do not have texture coordinates. Just create empty values
+        if (data.size == 0) {
+            data = FloatArray(normals.size)
         }
         return data
     }

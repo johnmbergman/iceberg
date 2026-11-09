@@ -10,6 +10,7 @@ import org.joml.Matrix4fc
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11C.*
 import org.lwjgl.opengl.GL13C.GL_TEXTURE0
+import org.lwjgl.opengl.GL13C.GL_TEXTURE1
 import org.lwjgl.opengl.GL13C.glActiveTexture
 import org.lwjgl.opengl.GL14C.GL_FUNC_ADD
 import org.lwjgl.opengl.GL14C.glBlendEquation
@@ -20,10 +21,12 @@ private const val PROJECTION_MATRIX_UNIFORM_NAME = "projectionMatrix"
 private const val VIEW_MATRIX_UNIFORM_NAME = "viewMatrix"
 private const val MODEL_MATRIX_UNIFORM_NAME = "modelMatrix"
 private const val TEXTURE_SAMPLER_UNIFORM_NAME = "textureSampler"
+private const val NORMAL_SAMPLER_UNIFORM_NAME = "normalSampler"
 private const val MATERIAL_AMBIENT_UNIFORM_NAME = "material.ambient"
 private const val MATERIAL_DIFFUSE_UNIFORM_NAME = "material.diffuse"
 private const val MATERIAL_SPECULAR_UNIFORM_NAME = "material.specular"
 private const val MATERIAL_REFLECTANCE_UNIFORM_NAME = "material.reflectance"
+private const val MATERIAL_NORMAL_MAP_UNIFORM_NAME = "material.hasNormalMap"
 private const val AMBIENT_LIGHT_UNIFORM_NAME = "ambientLight"
 private const val POINT_LIGHTS_UNIFORM_NAME = "pointLights"
 private const val SPOT_LIGHTS_UNIFORM_NAME = "spotLights"
@@ -56,11 +59,13 @@ class SceneRenderer {
         uniforms.createUniform(VIEW_MATRIX_UNIFORM_NAME)
         uniforms.createUniform(MODEL_MATRIX_UNIFORM_NAME)
         uniforms.createUniform(TEXTURE_SAMPLER_UNIFORM_NAME)
+        uniforms.createUniform(NORMAL_SAMPLER_UNIFORM_NAME)
 
         uniforms.createUniform(MATERIAL_AMBIENT_UNIFORM_NAME)
         uniforms.createUniform(MATERIAL_DIFFUSE_UNIFORM_NAME)
         uniforms.createUniform(MATERIAL_SPECULAR_UNIFORM_NAME)
         uniforms.createUniform(MATERIAL_REFLECTANCE_UNIFORM_NAME)
+        uniforms.createUniform(MATERIAL_NORMAL_MAP_UNIFORM_NAME)
 
         uniforms.createUniform("$AMBIENT_LIGHT_UNIFORM_NAME.factor")
         uniforms.createUniform("$AMBIENT_LIGHT_UNIFORM_NAME.color")
@@ -107,6 +112,7 @@ class SceneRenderer {
         uniforms.setUniform(PROJECTION_MATRIX_UNIFORM_NAME, scene.projection.projectionMatrix)
         uniforms.setUniform(VIEW_MATRIX_UNIFORM_NAME, scene.camera.viewMatrix);
         uniforms.setUniform(TEXTURE_SAMPLER_UNIFORM_NAME, 0)
+        uniforms.setUniform(NORMAL_SAMPLER_UNIFORM_NAME, 1)
         updateLights(scene)
         glActiveTexture(GL_TEXTURE0)
 
@@ -121,6 +127,19 @@ class SceneRenderer {
                 uniforms.setUniform(MATERIAL_DIFFUSE_UNIFORM_NAME, material.diffuseColor)
                 uniforms.setUniform(MATERIAL_SPECULAR_UNIFORM_NAME, material.specularColor)
                 uniforms.setUniform(MATERIAL_REFLECTANCE_UNIFORM_NAME, material.reflectance)
+                uniforms.setUniform(MATERIAL_NORMAL_MAP_UNIFORM_NAME, if (material.normalMapPath.isNotEmpty()) 1 else 0)
+                // Bind a texture to unit 1 even without a normal map. The shader doesn't sample it then
+                // (hasNormalMap is 0), but some drivers, such as macOS's, still warn when a sampler's unit
+                // has no usable texture. The default texture is just a placeholder to keep them quiet.
+                val normalMapTexture = if (material.normalMapPath.isNotEmpty()) {
+                    scene.textureCache[material.normalMapPath]
+                } else {
+                    scene.textureCache.default
+                }
+                glActiveTexture(GL_TEXTURE1)
+                normalMapTexture.bind()
+
+                glActiveTexture(GL_TEXTURE0)
                 material.texture.bind()
                 material.meshList.forEach { mesh ->
                     glBindVertexArray(mesh.vertexArrayObjectId)
