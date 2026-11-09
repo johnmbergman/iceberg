@@ -1,19 +1,9 @@
 package com.johnmbergman.iceberg.graphics
 
-import com.johnmbergman.iceberg.scene.Entity
-
+/** A model on the GPU. Owned by [ResourceCache]; scene nodes refer to it through a [com.johnmbergman.iceberg.scene.ModelId]. */
 class Model(val id: String, val materialList: List<Material>) {
-    private val entitiesList = mutableListOf<Entity>()
 
     fun cleanup() {
         materialList.forEach { it.cleanup() }
-    }
-
-    fun getEntities(): List<Entity> {
-        return entitiesList.toList()
-    }
-
-    fun addEntity(entity: Entity) {
-        entitiesList.add(entity)
     }
 }

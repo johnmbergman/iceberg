@@ -3,9 +3,8 @@ package com.johnmbergman.iceberg.sample
 import com.johnmbergman.iceberg.Engine
 import com.johnmbergman.iceberg.IAppLogic
 import com.johnmbergman.iceberg.Window
-import com.johnmbergman.iceberg.graphics.ModelUploader
+import com.johnmbergman.iceberg.graphics.ResourceCache
 import com.johnmbergman.iceberg.graphics.Renderer
-import com.johnmbergman.iceberg.graphics.TextureCache
 import com.johnmbergman.iceberg.input.MouseInput
 import com.johnmbergman.iceberg.math.Color
 import com.johnmbergman.iceberg.scene.*
@@ -32,7 +31,7 @@ class TestGame: IAppLogic {
         Engine(this).start()
     }
 
-    override fun onInit(window: Window, scene: Scene, renderer: Renderer, ui: UserInterface, textureCache: TextureCache) {
+    override fun onInit(window: Window, scene: Scene, renderer: Renderer, ui: UserInterface, resources: ResourceCache) {
         this.ui = ui
         window.mouseInput.isCaptured = false
         // Tab switches between steering the camera (cursor captured) and using the UI (cursor free)
@@ -43,26 +42,17 @@ class TestGame: IAppLogic {
         }
 
         // The same wall with and without a normal map, side by side, to compare the lighting
-        val wallNoNormalsModel = ModelUploader.loadModel(
-            "quad-no-normals-model", "models/wall/wall_nonormals.obj", textureCache
-        )
-        scene.addModel(wallNoNormalsModel)
+        val wallLeft = SceneNode("wall-left")
+        wallLeft.modelId = resources.loadModel("models/wall/wall_nonormals.obj")
+        wallLeft.setPosition(-3f, 0f, 0f)
+        wallLeft.setScale(2f)
+        scene.add(wallLeft)
 
-        // The walls never move, so their model matrices only need computing once
-        val wallLeftEntity = Entity("wall-left-entity", wallNoNormalsModel.id)
-        wallLeftEntity.setPosition(-3f, 0f, 0f)
-        wallLeftEntity.scale = 2f
-        wallLeftEntity.updateModelMatrix()
-        scene.addEntity(wallLeftEntity)
-
-        val wallModel = ModelUploader.loadModel("quad-model", "models/wall/wall.obj", textureCache)
-        scene.addModel(wallModel)
-
-        val wallRightEntity = Entity("wall-right-entity", wallModel.id)
-        wallRightEntity.setPosition(3f, 0f, 0f)
-        wallRightEntity.scale = 2f
-        wallRightEntity.updateModelMatrix()
-        scene.addEntity(wallRightEntity)
+        val wallRight = SceneNode("wall-right")
+        wallRight.modelId = resources.loadModel("models/wall/wall.obj")
+        wallRight.setPosition(3f, 0f, 0f)
+        wallRight.setScale(2f)
+        scene.add(wallRight)
 
         scene.environment.ambientColor = Color.WHITE
         scene.environment.ambientIntensity = 0.2f

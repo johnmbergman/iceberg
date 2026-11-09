@@ -1,4 +1,4 @@
-package com.johnmbergman.iceberg.graphics
+package com.johnmbergman.iceberg.scene
 
 import com.johnmbergman.iceberg.TOLERANCE
 import org.joml.Matrix4f

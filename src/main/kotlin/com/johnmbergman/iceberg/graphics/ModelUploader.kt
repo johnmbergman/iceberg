@@ -2,14 +2,9 @@ package com.johnmbergman.iceberg.graphics
 
 import com.johnmbergman.iceberg.assets.MaterialData
 import com.johnmbergman.iceberg.assets.ModelData
-import com.johnmbergman.iceberg.assets.ModelLoader
 
-/** Turns [ModelData] into GPU resources. Requires a current OpenGL context. */
+/** Turns [ModelData] into GPU resources. Requires a current OpenGL context; [ResourceCache] calls it. */
 object ModelUploader {
-
-    /** Reads a model file and uploads it in one step. */
-    fun loadModel(modelId: String, modelPath: String, textureCache: TextureCache, flags: Int = ModelLoader.DEFAULT_FLAGS): Model =
-        upload(ModelLoader.load(modelId, modelPath, flags), textureCache)
 
     fun upload(data: ModelData, textureCache: TextureCache): Model =
         Model(data.id, data.materials.map { upload(it, textureCache) })

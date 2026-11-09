@@ -18,12 +18,12 @@ class OpenGLRenderer: Renderer {
     private val skyBoxRenderer: SkyBoxRenderer
 
     /** Requires the window's OpenGL context to be current. */
-    constructor(textureCache: TextureCache) {
+    constructor(resources: ResourceCache) {
         glEnable(GL_DEPTH_TEST)
         glCullFace(GL_BACK)
-        sceneRenderer = SceneRenderer(textureCache)
+        sceneRenderer = SceneRenderer(resources)
         uiRenderer = UIRenderer()
-        skyBoxRenderer = SkyBoxRenderer(textureCache)
+        skyBoxRenderer = SkyBoxRenderer(resources)
     }
 
     override fun cleanup() {

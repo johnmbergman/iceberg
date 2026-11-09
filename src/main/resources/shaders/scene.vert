@@ -15,6 +15,8 @@ out vec2 outTextureCoordinate;
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 modelMatrix;
+// Inverse transpose of the model-view matrix's upper 3x3, so normals stay perpendicular under non-uniform scale
+uniform mat3 normalMatrix;
 
 void main()
 {
@@ -22,7 +24,7 @@ void main()
     vec4 modelViewPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * modelViewPosition;
     outPosition = modelViewPosition.xyz;
-    outNormal = normalize(modelViewMatrix * vec4(normal, 0.0)).xyz;
+    outNormal = normalize(normalMatrix * normal);
     outTangent = normalize(modelViewMatrix * vec4(tangent, 0)).xyz;
     outBitangent = normalize(modelViewMatrix * vec4(bitangent, 0)).xyz;
     outTextureCoordinate = textureCoordinate;

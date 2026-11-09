@@ -8,6 +8,9 @@ import org.joml.Vector3f
 import org.joml.Vector3fc
 
 class Camera {
+    /** Updated from the viewport size by [Scene.resize]. */
+    val projection = Projection()
+
     val position: Vector3fc field = Vector3f()
     val rotation: Vector2fc field = Vector2f()
     val viewMatrix: Matrix4fc field = Matrix4f()

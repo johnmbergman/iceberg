@@ -6,6 +6,8 @@ import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
 import com.johnmbergman.iceberg.scene.lighting.PointLight
 import com.johnmbergman.iceberg.scene.lighting.PositionalLight
 import com.johnmbergman.iceberg.scene.lighting.SpotLight
+import org.joml.Matrix3f
+import org.joml.Matrix4f
 import org.joml.Matrix4fc
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11C.*
@@ -20,6 +22,7 @@ import org.lwjgl.opengl.GL30C.glBindVertexArray
 private const val PROJECTION_MATRIX_UNIFORM_NAME = "projectionMatrix"
 private const val VIEW_MATRIX_UNIFORM_NAME = "viewMatrix"
 private const val MODEL_MATRIX_UNIFORM_NAME = "modelMatrix"
+private const val NORMAL_MATRIX_UNIFORM_NAME = "normalMatrix"
 private const val TEXTURE_SAMPLER_UNIFORM_NAME = "textureSampler"
 private const val NORMAL_SAMPLER_UNIFORM_NAME = "normalSampler"
 private const val MATERIAL_AMBIENT_UNIFORM_NAME = "material.ambient"
@@ -36,12 +39,19 @@ private const val DIRECTIONAL_LIGHT_UNIFORM_NAME = "dirLight"
 private const val MAX_POINT_LIGHTS = 5
 private const val MAX_SPOT_LIGHTS = 5
 
-class SceneRenderer(private val textureCache: TextureCache) {
+class SceneRenderer(private val resources: ResourceCache) {
     private val shaderProgram: ShaderProgram
     private val uniforms: UniformsMap
 
+    // Rebuilt every frame; kept so its lists are reused
+    private val renderQueue = RenderQueue()
+
     // Scratch vector for converting light positions/directions to view space without allocating per frame
     private val viewSpaceVector = Vector3f()
+
+    // Scratch matrices for each node's normal matrix, reused so drawing doesn't allocate
+    private val modelViewMatrix = Matrix4f()
+    private val normalMatrix = Matrix3f()
 
     init {
         val shaderModuleDataList = listOf(
@@ -58,6 +68,7 @@ class SceneRenderer(private val textureCache: TextureCache) {
         uniforms.createUniform(PROJECTION_MATRIX_UNIFORM_NAME)
         uniforms.createUniform(VIEW_MATRIX_UNIFORM_NAME)
         uniforms.createUniform(MODEL_MATRIX_UNIFORM_NAME)
+        uniforms.createUniform(NORMAL_MATRIX_UNIFORM_NAME)
         uniforms.createUniform(TEXTURE_SAMPLER_UNIFORM_NAME)
         uniforms.createUniform(NORMAL_SAMPLER_UNIFORM_NAME)
 
@@ -109,19 +120,21 @@ class SceneRenderer(private val textureCache: TextureCache) {
         glBlendEquation(GL_FUNC_ADD);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         shaderProgram.bind()
-        uniforms.setUniform(PROJECTION_MATRIX_UNIFORM_NAME, scene.projection.projectionMatrix)
+        uniforms.setUniform(PROJECTION_MATRIX_UNIFORM_NAME, scene.camera.projection.projectionMatrix)
         uniforms.setUniform(VIEW_MATRIX_UNIFORM_NAME, scene.camera.viewMatrix);
         uniforms.setUniform(TEXTURE_SAMPLER_UNIFORM_NAME, 0)
         uniforms.setUniform(NORMAL_SAMPLER_UNIFORM_NAME, 1)
         updateLights(scene)
         glActiveTexture(GL_TEXTURE0)
 
-        val fog: Fog = scene.fog
+        val fog: Fog = scene.environment.fog
         uniforms.setUniform("fog.activeFog", if (fog.active) 1 else 0)
         uniforms.setUniformRgb("fog.color", fog.color)
         uniforms.setUniform("fog.density", fog.density)
 
-        scene.modelMap.forEach { (_, model) ->
+        renderQueue.build(scene)
+        for ((modelId, worldMatrices) in renderQueue.batches) {
+            val model = resources.model(modelId)
             model.materialList.forEach { material ->
                 uniforms.setUniform(MATERIAL_AMBIENT_UNIFORM_NAME, material.ambientColor)
                 uniforms.setUniform(MATERIAL_DIFFUSE_UNIFORM_NAME, material.diffuseColor)
@@ -131,7 +144,7 @@ class SceneRenderer(private val textureCache: TextureCache) {
                 // Bind a texture to unit 1 even without a normal map. The shader doesn't sample it then
                 // (hasNormalMap is 0), but some drivers, such as macOS's, still warn when a sampler's unit
                 // has no usable texture. The default texture is just a placeholder to keep them quiet.
-                val normalMapTexture = material.normalMap ?: textureCache.default
+                val normalMapTexture = material.normalMap ?: resources.textures.default
                 glActiveTexture(GL_TEXTURE1)
                 normalMapTexture.bind()
 
@@ -139,8 +152,10 @@ class SceneRenderer(private val textureCache: TextureCache) {
                 material.texture.bind()
                 material.meshList.forEach { mesh ->
                     glBindVertexArray(mesh.vertexArrayObjectId)
-                    model.getEntities().forEach { entity ->
-                        uniforms.setUniform(MODEL_MATRIX_UNIFORM_NAME, entity.modelMatrix)
+                    worldMatrices.forEach { worldMatrix ->
+                        uniforms.setUniform(MODEL_MATRIX_UNIFORM_NAME, worldMatrix)
+                        scene.camera.viewMatrix.mul(worldMatrix, modelViewMatrix).normal(normalMatrix)
+                        uniforms.setUniform(NORMAL_MATRIX_UNIFORM_NAME, normalMatrix)
                         glDrawElements(GL_TRIANGLES, mesh.numberOfVertices, GL_UNSIGNED_INT, 0)
                     }
                 }

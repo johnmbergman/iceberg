@@ -1,8 +1,8 @@
 package com.johnmbergman.iceberg
 
+import com.johnmbergman.iceberg.graphics.ResourceCache
 import com.johnmbergman.iceberg.graphics.OpenGLRenderer
 import com.johnmbergman.iceberg.graphics.Renderer
-import com.johnmbergman.iceberg.graphics.TextureCache
 import com.johnmbergman.iceberg.monitoring.Logger
 import com.johnmbergman.iceberg.monitoring.SimpleLogger
 import com.johnmbergman.iceberg.scene.Scene
@@ -18,7 +18,7 @@ class Engine {
     private val targetFramesPerSecond: Int = 0
     private val targetUpdatesPerSecond: Int = 60
     private val renderer: Renderer
-    private val textureCache: TextureCache
+    private val resources: ResourceCache
     private val ui: UserInterface
     private val logger: Logger = SimpleLogger()
     private val handler: IAppLogic
@@ -37,10 +37,10 @@ class Engine {
         // The UI context must exist before the renderer, which builds the UI font atlas
         ui = UserInterface(window)
         logger.debug("User interface initialized")
-        // Textures are GPU resources, so the cache needs the window's OpenGL context
-        textureCache = TextureCache()
-        logger.debug("Texture cache initialized")
-        renderer = OpenGLRenderer(textureCache)
+        // Models and textures are GPU resources, so the resource cache needs the window's OpenGL context
+        resources = ResourceCache()
+        logger.debug("Resource cache initialized")
+        renderer = OpenGLRenderer(resources)
         logger.debug("Renderer initialized")
         currentScene = Scene()
         resize()
@@ -51,7 +51,7 @@ class Engine {
                 window.requestClose()
             }
         }
-        handler.onInit(window, currentScene, renderer, ui, textureCache)
+        handler.onInit(window, currentScene, renderer, ui, resources)
         running = true
     }
 
@@ -104,11 +104,9 @@ class Engine {
         renderer.cleanup()
         logger.debug("Cleaning up user interface...")
         ui.cleanup()
-        logger.debug("Cleaning up scene...")
-        currentScene.cleanup()
-        // Textures must be deleted while the window's OpenGL context still exists
-        logger.debug("Cleaning up texture cache...")
-        textureCache.cleanup()
+        // Models and textures must be deleted while the window's OpenGL context still exists
+        logger.debug("Cleaning up resources...")
+        resources.cleanup()
         logger.debug("Cleaning up window...")
         window.cleanup()
         logger.debug("Window cleaned up")

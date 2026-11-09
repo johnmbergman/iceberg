@@ -1,6 +1,7 @@
 package com.johnmbergman.iceberg.graphics
 
 import com.johnmbergman.iceberg.math.Color
+import org.joml.Matrix3fc
 import org.joml.Matrix4fc
 import org.joml.Vector2fc
 import org.joml.Vector3fc
@@ -10,6 +11,7 @@ import org.lwjgl.opengl.GL20C.glUniform1i
 import org.lwjgl.opengl.GL20C.glUniform2f
 import org.lwjgl.opengl.GL20C.glUniform3f
 import org.lwjgl.opengl.GL20C.glUniform4f
+import org.lwjgl.opengl.GL20C.glUniformMatrix3fv
 import org.lwjgl.opengl.GL20C.glUniformMatrix4fv
 import org.lwjgl.system.MemoryStack
 
@@ -29,6 +31,12 @@ class UniformsMap(private val programId: Int) {
     fun setUniform(name: String, value: Matrix4fc) {
         MemoryStack.stackPush().use { stack ->
             glUniformMatrix4fv(getLocation(name), false, value.get(stack.mallocFloat(16)))
+        }
+    }
+
+    fun setUniform(name: String, value: Matrix3fc) {
+        MemoryStack.stackPush().use { stack ->
+            glUniformMatrix3fv(getLocation(name), false, value.get(stack.mallocFloat(9)))
         }
     }
 
