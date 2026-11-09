@@ -49,9 +49,10 @@ class SceneRenderer(private val resources: ResourceCache) {
     // Scratch vector for converting light positions/directions to view space without allocating per frame
     private val viewSpaceVector = Vector3f()
 
-    // Scratch matrices for each node's normal matrix, reused so drawing doesn't allocate
+    // Normal matrices for the batch being drawn, one per node, computed once and reused for every mesh. Both
+    // the list and its matrices are reused between batches and frames so drawing doesn't allocate.
+    private val normalMatrices = mutableListOf<Matrix3f>()
     private val modelViewMatrix = Matrix4f()
-    private val normalMatrix = Matrix3f()
 
     init {
         val shaderModuleDataList = listOf(
@@ -135,6 +136,7 @@ class SceneRenderer(private val resources: ResourceCache) {
         renderQueue.build(scene)
         for ((modelId, worldMatrices) in renderQueue.batches) {
             val model = resources.model(modelId)
+            computeNormalMatrices(scene.camera.viewMatrix, worldMatrices)
             model.materialList.forEach { material ->
                 uniforms.setUniform(MATERIAL_AMBIENT_UNIFORM_NAME, material.ambientColor)
                 uniforms.setUniform(MATERIAL_DIFFUSE_UNIFORM_NAME, material.diffuseColor)
@@ -152,10 +154,9 @@ class SceneRenderer(private val resources: ResourceCache) {
                 material.texture.bind()
                 material.meshList.forEach { mesh ->
                     glBindVertexArray(mesh.vertexArrayObjectId)
-                    worldMatrices.forEach { worldMatrix ->
+                    worldMatrices.forEachIndexed { i, worldMatrix ->
                         uniforms.setUniform(MODEL_MATRIX_UNIFORM_NAME, worldMatrix)
-                        scene.camera.viewMatrix.mul(worldMatrix, modelViewMatrix).normal(normalMatrix)
-                        uniforms.setUniform(NORMAL_MATRIX_UNIFORM_NAME, normalMatrix)
+                        uniforms.setUniform(NORMAL_MATRIX_UNIFORM_NAME, normalMatrices[i])
                         glDrawElements(GL_TRIANGLES, mesh.numberOfVertices, GL_UNSIGNED_INT, 0)
                     }
                 }
@@ -164,6 +165,16 @@ class SceneRenderer(private val resources: ResourceCache) {
         glBindVertexArray(0)
         shaderProgram.unbind()
         glDisable(GL_BLEND)
+    }
+
+    /** Fills [normalMatrices] with the inverse transpose of each node's model-view matrix, in batch order. */
+    private fun computeNormalMatrices(viewMatrix: Matrix4fc, worldMatrices: List<Matrix4fc>) {
+        while (normalMatrices.size < worldMatrices.size) {
+            normalMatrices += Matrix3f()
+        }
+        worldMatrices.forEachIndexed { i, worldMatrix ->
+            viewMatrix.mul(worldMatrix, modelViewMatrix).normal(normalMatrices[i])
+        }
     }
 
     private fun updateLights(scene: Scene) {
