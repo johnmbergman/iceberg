@@ -31,6 +31,7 @@ import org.lwjgl.glfw.GLFW.glfwSwapBuffers
 import org.lwjgl.glfw.GLFW.glfwSwapInterval
 import org.lwjgl.glfw.GLFW.glfwWindowHint
 import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
+import org.lwjgl.opengl.GL
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
 import com.johnmbergman.iceberg.input.MouseInput
@@ -111,8 +112,9 @@ class Window {
             )
         } // The stack frame is popped automatically
 
-        // Make the OpenGL context current
+        // Make the OpenGL context current and load its function pointers, so GL resources can be created from here on
         glfwMakeContextCurrent(windowHandle)
+        GL.createCapabilities()
 
         // On high-DPI displays the framebuffer is larger than the window size in screen coordinates
         stackPush().use { stack ->

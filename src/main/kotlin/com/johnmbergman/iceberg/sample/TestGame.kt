@@ -4,6 +4,7 @@ import com.johnmbergman.iceberg.Engine
 import com.johnmbergman.iceberg.IAppLogic
 import com.johnmbergman.iceberg.Window
 import com.johnmbergman.iceberg.graphics.Renderer
+import com.johnmbergman.iceberg.graphics.TextureCache
 import com.johnmbergman.iceberg.input.MouseInput
 import com.johnmbergman.iceberg.scene.*
 import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
@@ -29,7 +30,7 @@ class TestGame: IAppLogic {
         Engine(this).start()
     }
 
-    override fun onInit(window: Window, scene: Scene, renderer: Renderer, ui: UserInterface) {
+    override fun onInit(window: Window, scene: Scene, renderer: Renderer, ui: UserInterface, textureCache: TextureCache) {
         this.ui = ui
         window.mouseInput.isCaptured = false
         // Tab switches between steering the camera (cursor captured) and using the UI (cursor free)
@@ -41,7 +42,7 @@ class TestGame: IAppLogic {
 
         // The same wall with and without a normal map, side by side, to compare the lighting
         val wallNoNormalsModel = ModelLoader.loadModel(
-            "quad-no-normals-model", "models/wall/wall_nonormals.obj", scene.textureCache
+            "quad-no-normals-model", "models/wall/wall_nonormals.obj", textureCache
         )
         scene.addModel(wallNoNormalsModel)
 
@@ -52,7 +53,7 @@ class TestGame: IAppLogic {
         wallLeftEntity.updateModelMatrix()
         scene.addEntity(wallLeftEntity)
 
-        val wallModel = ModelLoader.loadModel("quad-model", "models/wall/wall.obj", scene.textureCache)
+        val wallModel = ModelLoader.loadModel("quad-model", "models/wall/wall.obj", textureCache)
         scene.addModel(wallModel)
 
         val wallRightEntity = Entity("wall-right-entity", wallModel.id)

@@ -36,14 +36,14 @@ private const val DIRECTIONAL_LIGHT_UNIFORM_NAME = "dirLight"
 private const val MAX_POINT_LIGHTS = 5
 private const val MAX_SPOT_LIGHTS = 5
 
-class SceneRenderer {
+class SceneRenderer(private val textureCache: TextureCache) {
     private val shaderProgram: ShaderProgram
     private val uniforms: UniformsMap
 
     // Scratch vector for converting light positions/directions to view space without allocating per frame
     private val viewSpaceVector = Vector3f()
 
-    constructor() {
+    init {
         val shaderModuleDataList = listOf(
             ShaderModuleData("shaders/scene.vert", ShaderType.VERTEX),
             ShaderModuleData("shaders/scene.frag", ShaderType.FRAGMENT)
@@ -132,9 +132,9 @@ class SceneRenderer {
                 // (hasNormalMap is 0), but some drivers, such as macOS's, still warn when a sampler's unit
                 // has no usable texture. The default texture is just a placeholder to keep them quiet.
                 val normalMapTexture = if (material.normalMapPath.isNotEmpty()) {
-                    scene.textureCache[material.normalMapPath]
+                    textureCache[material.normalMapPath]
                 } else {
-                    scene.textureCache.default
+                    textureCache.default
                 }
                 glActiveTexture(GL_TEXTURE1)
                 normalMapTexture.bind()

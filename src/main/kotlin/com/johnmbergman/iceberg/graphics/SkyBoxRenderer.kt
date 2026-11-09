@@ -20,14 +20,14 @@ private const val HAS_TEXTURE_UNIFORM_NAME = "hasTexture"
  * Draws the scene's skybox, if it has one. Run it before [SceneRenderer]: the skybox ignores the
  * camera's translation, so it always surrounds the viewer and anything drawn afterwards appears in front.
  */
-class SkyBoxRenderer {
+class SkyBoxRenderer(private val textureCache: TextureCache) {
     private val shaderProgram: ShaderProgram
     private val uniforms: UniformsMap
 
     // Camera view matrix with its translation stripped, reused each frame
     private val viewMatrix = Matrix4f()
 
-    constructor() {
+    init {
         val shaderModuleDataList = listOf(
             ShaderModuleData("shaders/skybox.vert", ShaderType.VERTEX),
             ShaderModuleData("shaders/skybox.frag", ShaderType.FRAGMENT)
@@ -62,7 +62,7 @@ class SkyBoxRenderer {
         uniforms.setUniform(TEXTURE_SAMPLER_UNIFORM_NAME, 0)
 
         glActiveTexture(GL_TEXTURE0)
-        val defaultTexture = scene.textureCache.default
+        val defaultTexture = textureCache.default
         skyBox.skyBoxModel.materialList.forEach { material ->
             material.texture.bind()
             uniforms.setUniform(DIFFUSE_UNIFORM_NAME, material.diffuseColor)
