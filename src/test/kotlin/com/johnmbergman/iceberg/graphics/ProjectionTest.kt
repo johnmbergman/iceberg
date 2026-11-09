@@ -1,9 +1,11 @@
 package com.johnmbergman.iceberg.graphics
 
 import com.johnmbergman.iceberg.TOLERANCE
+import org.joml.Matrix4f
 import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * For a perspective matrix, m11 = 1 / tan(fovY / 2) and m00 = m11 / aspect,
@@ -39,5 +41,36 @@ class ProjectionTest {
         projection.updateProjectionMatrix(1920, 1080)
 
         assertEquals(before, projection.projectionMatrix.m11(), TOLERANCE)
+    }
+
+    @Test
+    fun defaultProjectionIsIdentityRatherThanNaN() {
+        val matrix = Projection().projectionMatrix
+        assertTrue(matrix.isFinite)
+        assertTrue(Matrix4f(matrix).equals(Matrix4f(), TOLERANCE))
+    }
+
+    @Test
+    fun emptySizeKeepsThePreviousMatrix() {
+        val projection = Projection(800, 600)
+        val before = Matrix4f(projection.projectionMatrix)
+
+        projection.updateProjectionMatrix(0, 0)
+        projection.updateProjectionMatrix(800, 0)
+        projection.updateProjectionMatrix(0, 600)
+        projection.updateProjectionMatrix(-1, 600)
+
+        assertTrue(projection.projectionMatrix.isFinite)
+        assertTrue(Matrix4f(projection.projectionMatrix).equals(before, 0f))
+    }
+
+    @Test
+    fun recoversAfterAnEmptySize() {
+        val projection = Projection(800, 600)
+        projection.updateProjectionMatrix(0, 0) // e.g., minimized
+        projection.updateProjectionMatrix(1920, 1080) // restored
+
+        val matrix = projection.projectionMatrix
+        assertEquals(1920f / 1080f, matrix.m11() / matrix.m00(), TOLERANCE)
     }
 }
