@@ -12,6 +12,7 @@ import org.joml.Vector3fc
 import org.lwjgl.opengl.GL11C.*
 import org.lwjgl.opengl.GL13C.GL_TEXTURE0
 import org.lwjgl.opengl.GL13C.GL_TEXTURE1
+import org.lwjgl.opengl.GL13C.GL_TEXTURE2
 import org.lwjgl.opengl.GL13C.glActiveTexture
 import org.lwjgl.opengl.GL14C.GL_FUNC_ADD
 import org.lwjgl.opengl.GL14C.glBlendEquation
@@ -33,13 +34,15 @@ private const val AMBIENT_LIGHT_UNIFORM_NAME = "ambientLight"
 private const val POINT_LIGHTS_UNIFORM_NAME = "pointLights"
 private const val SPOT_LIGHTS_UNIFORM_NAME = "spotLights"
 private const val DIRECTIONAL_LIGHT_UNIFORM_NAME = "dirLight"
+private const val SHADOW_MAP_UNIFORM_NAME = "shadowMap"
+private const val CASCADE_SHADOWS_UNIFORM_NAME = "cascadeshadows"
+
+// Texture units: 0 is the material's texture, 1 its normal map, 2 the shadow maps
+private const val SHADOW_MAP_TEXTURE_UNIT = 2
 
 class SceneRenderer(private val resources: ResourceCache) {
     private val shaderProgram: ShaderProgram
     private val uniforms: UniformsMap
-
-    // Rebuilt every frame; kept so its lists are reused
-    private val renderQueue = RenderQueue()
 
     // Chooses the lights that fit in the shader's slots and converts them to view space
     private val lightPacker = LightPacker(SimpleLogger())
@@ -95,6 +98,15 @@ class SceneRenderer(private val resources: ResourceCache) {
         uniforms.createUniform("fog.activeFog");
         uniforms.createUniform("fog.color");
         uniforms.createUniform("fog.density");
+
+        uniforms.createUniform(SHADOW_MAP_UNIFORM_NAME)
+        for (i in 0..<SHADOW_MAP_CASCADE_COUNT) {
+            uniforms.createUniform("$CASCADE_SHADOWS_UNIFORM_NAME[$i].projViewMatrix")
+            // The shader never reads the last cascade's split distance, so the compiler may drop that uniform
+            if (i < SHADOW_MAP_CASCADE_COUNT - 1) {
+                uniforms.createUniform("$CASCADE_SHADOWS_UNIFORM_NAME[$i].splitDistance")
+            }
+        }
     }
 
     /** Creates the uniforms for a GLSL `PointLight` struct, which spot lights also embed as `pl`. */
@@ -111,7 +123,8 @@ class SceneRenderer(private val resources: ResourceCache) {
         shaderProgram.cleanup()
     }
 
-    fun render(scene: Scene) {
+    /** Draws [renderQueue], shadowed using the maps [shadowRenderer] rendered this frame. */
+    fun render(scene: Scene, renderQueue: RenderQueue, shadowRenderer: ShadowRenderer) {
         glEnable(GL_BLEND);
         glBlendEquation(GL_FUNC_ADD);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -128,7 +141,7 @@ class SceneRenderer(private val resources: ResourceCache) {
         uniforms.setUniformRgb("fog.color", fog.color)
         uniforms.setUniform("fog.density", fog.density)
 
-        renderQueue.build(scene)
+        updateShadows(shadowRenderer)
         for ((modelId, worldMatrices) in renderQueue.batches) {
             val model = resources.model(modelId)
             computeNormalMatrices(scene.camera.viewMatrix, worldMatrices)
@@ -160,6 +173,21 @@ class SceneRenderer(private val resources: ResourceCache) {
         glBindVertexArray(0)
         shaderProgram.unbind()
         glDisable(GL_BLEND)
+    }
+
+    private fun updateShadows(shadowRenderer: ShadowRenderer) {
+        uniforms.setUniform(SHADOW_MAP_UNIFORM_NAME, SHADOW_MAP_TEXTURE_UNIT)
+        val cascades = shadowRenderer.cascadeShadows.cascades
+        for (i in cascades.indices) {
+            val name = "$CASCADE_SHADOWS_UNIFORM_NAME[$i]"
+            uniforms.setUniform("$name.projViewMatrix", cascades[i].projectionViewMatrix)
+            if (i < cascades.size - 1) {
+                uniforms.setUniform("$name.splitDistance", cascades[i].splitDistance)
+            }
+        }
+        glActiveTexture(GL_TEXTURE2)
+        shadowRenderer.shadowBuffer.bindTexture()
+        glActiveTexture(GL_TEXTURE0)
     }
 
     /** Fills [normalMatrices] with the inverse transpose of each node's model-view matrix, in batch order. */

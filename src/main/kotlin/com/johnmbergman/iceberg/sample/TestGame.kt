@@ -57,6 +57,15 @@ class TestGame: IAppLogic {
         wallRight.setScale(2f)
         scene.add(wallRight)
 
+        // A cube floating above each wall casts a shadow onto it; left/right arrows swing the light to move them
+        val cubeModelId = resources.loadModel("models/cube/cube.obj")
+        for ((name, x) in listOf("cube-left" to -3f, "cube-right" to 3f)) {
+            val cube = SceneNode(name)
+            cube.modelId = cubeModelId
+            cube.setPosition(x, 1f, 0f)
+            scene.add(cube)
+        }
+
         scene.environment.ambientColor = Color.WHITE
         scene.environment.ambientIntensity = 0.2f
         dirLight = DirectionalLight(direction = Vector3f(1f, 1f, 0f), intensity = 1f)

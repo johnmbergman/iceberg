@@ -3,12 +3,21 @@
 const int MAX_POINT_LIGHTS = 5;
 const int MAX_SPOT_LIGHTS = 5;
 const float SPECULAR_POWER = 10;
+// Set to 1 to tint each cascade (red, green, blue, nearest first) and check where the splits fall
+const int DEBUG_SHADOWS = 0;
+// Must match SHADOW_MAP_CASCADE_COUNT in CascadeShadows.kt
+const int NUM_CASCADES = 3;
+// Pushes the comparison slightly toward the light so surfaces don't shadow themselves ("shadow acne")
+const float BIAS = 0.0005;
+// How much light reaches a shadowed fragment
+const float SHADOW_FACTOR = 0.25;
 
 in vec3 outPosition;
 in vec3 outNormal;
 in vec3 outTangent;
 in vec3 outBitangent;
 in vec2 outTextureCoordinate;
+in vec4 outWorldPosition;
 
 out vec4 fragColor;
 
@@ -56,6 +65,13 @@ struct Fog
     vec3 color;
     float density;
 };
+struct CascadeShadow
+{
+    // World space to the cascade's shadow map clip space
+    mat4 projViewMatrix;
+    // View-space z where the cascade ends (negative); the last cascade's is never read
+    float splitDistance;
+};
 
 uniform sampler2D textureSampler;
 uniform sampler2D normalSampler;
@@ -65,6 +81,9 @@ uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform SpotLight spotLights[MAX_SPOT_LIGHTS];
 uniform DirLight dirLight;
 uniform Fog fog;
+uniform CascadeShadow cascadeshadows[NUM_CASCADES];
+// One layer per cascade. A texture array, since GLSL 330 can't index a sampler array with a per-fragment value.
+uniform sampler2DArray shadowMap;
 
 vec4 calcAmbient(AmbientLight ambientLight, vec4 ambient)
 {
@@ -144,6 +163,26 @@ vec3 calcNormal(vec3 normal, vec3 tangent, vec3 bitangent, vec2 textCoords) {
     return newNormal;
 }
 
+// Returns SHADOW_FACTOR if something nearer the light covers shadowCoord in cascade idx's map, otherwise 1
+float textureProj(vec4 shadowCoord, vec2 offset, int idx) {
+    float shadow = 1.0;
+
+    if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0) {
+        float dist = texture(shadowMap, vec3(shadowCoord.xy + offset, idx)).r;
+        if (shadowCoord.w > 0 && dist < shadowCoord.z - BIAS) {
+            shadow = SHADOW_FACTOR;
+        }
+    }
+    return shadow;
+}
+
+float calcShadow(vec4 worldPosition, int idx) {
+    vec4 shadowMapPosition = cascadeshadows[idx].projViewMatrix * worldPosition;
+    // Clip space (-1 to 1) to texture coordinates and depth (0 to 1)
+    vec4 shadowCoord = (shadowMapPosition / shadowMapPosition.w) * 0.5 + 0.5;
+    return textureProj(shadowCoord, vec2(0, 0), idx);
+}
+
 void main()
 {
     vec4 text_color = texture(textureSampler, outTextureCoordinate);
@@ -157,6 +196,15 @@ void main()
     }
 
     vec4 diffuseSpecularComp = calcDirLight(diffuse, specular, dirLight, outPosition, normal);
+
+    // View space looks down -z, so a fragment past a cascade's (negative) split distance belongs to a later one
+    int cascadeIndex = 0;
+    for (int i = 0; i < NUM_CASCADES - 1; i++) {
+        if (outPosition.z < cascadeshadows[i].splitDistance) {
+            cascadeIndex = i + 1;
+        }
+    }
+    float shadowFactor = calcShadow(outWorldPosition, cascadeIndex);
 
     for (int i = 0; i < MAX_POINT_LIGHTS; i++)
     {
@@ -174,8 +222,26 @@ void main()
         }
     }
     fragColor = ambient + diffuseSpecularComp;
+    fragColor.rgb = fragColor.rgb * shadowFactor;
 
     if (fog.activeFog == 1) {
         fragColor = calcFog(outPosition, fragColor, fog, ambientLight.color * ambientLight.factor, dirLight);
+    }
+
+    if (DEBUG_SHADOWS == 1) {
+        switch (cascadeIndex) {
+            case 0:
+                fragColor.rgb *= vec3(1.0, 0.25, 0.25);
+                break;
+            case 1:
+                fragColor.rgb *= vec3(0.25, 1.0, 0.25);
+                break;
+            case 2:
+                fragColor.rgb *= vec3(0.25, 0.25, 1.0);
+                break;
+            default:
+                fragColor.rgb *= vec3(1.0, 1.0, 0.25);
+                break;
+        }
     }
 }

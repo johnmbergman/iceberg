@@ -11,6 +11,8 @@ out vec3 outNormal;
 out vec3 outTangent;
 out vec3 outBitangent;
 out vec2 outTextureCoordinate;
+// World-space position, for looking up the fragment in the shadow maps
+out vec4 outWorldPosition;
 
 uniform mat4 projectionMatrix;
 uniform mat4 viewMatrix;
@@ -28,4 +30,5 @@ void main()
     outTangent = normalize(modelViewMatrix * vec4(tangent, 0)).xyz;
     outBitangent = normalize(modelViewMatrix * vec4(bitangent, 0)).xyz;
     outTextureCoordinate = textureCoordinate;
+    outWorldPosition = modelMatrix * vec4(position, 1.0);
 }

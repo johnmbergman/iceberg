@@ -13,6 +13,12 @@ private const val Z_NEAR = 0.1f
 class Projection(width: Int = 0, height: Int = 0) {
     val projectionMatrix = Matrix4f()
 
+    /** Distance from the camera to the near clipping plane. */
+    val near = Z_NEAR
+
+    /** Distance from the camera to the far clipping plane. */
+    val far = Z_FAR
+
     init {
         updateProjectionMatrix(width, height)
     }
