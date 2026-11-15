@@ -12,10 +12,13 @@ import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
 import com.johnmbergman.iceberg.ui.UserInterface
 import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW.*
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
 
 
 private const val MOUSE_SENSITIVITY = 0.1f
-private const val MOVEMENT_SPEED = 0.025f
+// World units per second
+private const val MOVEMENT_SPEED = 25f
 private const val LIGHT_ANGLE_STEP = 2.5f
 
 class TestGame: IAppLogic {
@@ -69,8 +72,8 @@ class TestGame: IAppLogic {
         lightControls = LightControls(scene)
     }
 
-    override fun onInput(window: Window, scene: Scene, deltaMillis: Long) {
-        val move = deltaMillis * MOVEMENT_SPEED
+    override fun onInput(window: Window, scene: Scene, delta: Duration) {
+        val move = delta.toDouble(DurationUnit.SECONDS).toFloat() * MOVEMENT_SPEED
 
         val camera: Camera = scene.camera
         if (!ui.wantsKeyboard) {

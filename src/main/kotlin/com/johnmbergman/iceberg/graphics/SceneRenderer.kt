@@ -1,15 +1,14 @@
 package com.johnmbergman.iceberg.graphics
 
+import com.johnmbergman.iceberg.monitoring.SimpleLogger
 import com.johnmbergman.iceberg.scene.Fog
 import com.johnmbergman.iceberg.scene.Scene
 import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
-import com.johnmbergman.iceberg.scene.lighting.PointLight
 import com.johnmbergman.iceberg.scene.lighting.PositionalLight
-import com.johnmbergman.iceberg.scene.lighting.SpotLight
 import org.joml.Matrix3f
 import org.joml.Matrix4f
 import org.joml.Matrix4fc
-import org.joml.Vector3f
+import org.joml.Vector3fc
 import org.lwjgl.opengl.GL11C.*
 import org.lwjgl.opengl.GL13C.GL_TEXTURE0
 import org.lwjgl.opengl.GL13C.GL_TEXTURE1
@@ -35,10 +34,6 @@ private const val POINT_LIGHTS_UNIFORM_NAME = "pointLights"
 private const val SPOT_LIGHTS_UNIFORM_NAME = "spotLights"
 private const val DIRECTIONAL_LIGHT_UNIFORM_NAME = "dirLight"
 
-// Must match the array sizes in scene.frag
-private const val MAX_POINT_LIGHTS = 5
-private const val MAX_SPOT_LIGHTS = 5
-
 class SceneRenderer(private val resources: ResourceCache) {
     private val shaderProgram: ShaderProgram
     private val uniforms: UniformsMap
@@ -46,8 +41,8 @@ class SceneRenderer(private val resources: ResourceCache) {
     // Rebuilt every frame; kept so its lists are reused
     private val renderQueue = RenderQueue()
 
-    // Scratch vector for converting light positions/directions to view space without allocating per frame
-    private val viewSpaceVector = Vector3f()
+    // Chooses the lights that fit in the shader's slots and converts them to view space
+    private val lightPacker = LightPacker(SimpleLogger())
 
     // Normal matrices for the batch being drawn, one per node, computed once and reused for every mesh. Both
     // the list and its matrices are reused between batches and frames so drawing doesn't allocate.
@@ -178,36 +173,31 @@ class SceneRenderer(private val resources: ResourceCache) {
     }
 
     private fun updateLights(scene: Scene) {
-        val viewMatrix = scene.camera.viewMatrix
-
         val environment = scene.environment
         uniforms.setUniform("$AMBIENT_LIGHT_UNIFORM_NAME.factor", environment.ambientIntensity)
         uniforms.setUniformRgb("$AMBIENT_LIGHT_UNIFORM_NAME.color", environment.ambientColor)
 
-        // The shader supports a single directional light; any extras are ignored
-        updateDirectionalLight(scene.lights.firstNotNullOfOrNull { it as? DirectionalLight }, viewMatrix)
-
-        val pointLights = scene.lights.filterIsInstance<PointLight>()
+        val lights = lightPacker.pack(scene.lights, scene.camera.viewMatrix)
+        setDirectionalLight(lights.directional, lights.directionalViewDirection)
+        // Write every slot, including empty ones: uniforms keep their values, so a removed light would stay lit
         for (i in 0..<MAX_POINT_LIGHTS) {
-            updatePointLight(pointLights.getOrNull(i), "$POINT_LIGHTS_UNIFORM_NAME[$i]", viewMatrix)
+            val packed = lights.pointLight(i)
+            setPointLight("$POINT_LIGHTS_UNIFORM_NAME[$i]", packed?.light, packed?.viewPosition)
         }
-
-        val spotLights = scene.lights.filterIsInstance<SpotLight>()
         for (i in 0..<MAX_SPOT_LIGHTS) {
-            updateSpotLight(spotLights.getOrNull(i), "$SPOT_LIGHTS_UNIFORM_NAME[$i]", viewMatrix)
+            setSpotLight("$SPOT_LIGHTS_UNIFORM_NAME[$i]", lights.spotLight(i))
         }
     }
 
-    /** A null light zeroes its uniforms so the shader treats the slot as off. */
-    private fun updateDirectionalLight(light: DirectionalLight?, viewMatrix: Matrix4fc) {
+    /** A null light zeroes its intensity so the shader treats the slot as off. */
+    private fun setDirectionalLight(light: DirectionalLight?, viewDirection: Vector3fc) {
         val name = DIRECTIONAL_LIGHT_UNIFORM_NAME
         if (light == null) {
             uniforms.setUniform("$name.intensity", 0f)
             return
         }
-        viewMatrix.transformDirection(light.direction, viewSpaceVector)
         uniforms.setUniformRgb("$name.color", light.color)
-        uniforms.setUniform("$name.direction", viewSpaceVector)
+        uniforms.setUniform("$name.direction", viewDirection)
         uniforms.setUniform("$name.intensity", light.intensity)
     }
 
@@ -215,14 +205,13 @@ class SceneRenderer(private val resources: ResourceCache) {
      * Sets the uniforms of a GLSL `PointLight` struct. Spot lights embed one as `pl`, so both
      * Kotlin light types share this. A null light zeroes the slot so the shader skips it.
      */
-    private fun updatePointLight(light: PositionalLight?, name: String, viewMatrix: Matrix4fc) {
-        if (light == null) {
+    private fun setPointLight(name: String, light: PositionalLight?, viewPosition: Vector3fc?) {
+        if (light == null || viewPosition == null) {
             // The shader skips any slot whose intensity is 0
             uniforms.setUniform("$name.intensity", 0f)
             return
         }
-        viewMatrix.transformPosition(light.position, viewSpaceVector)
-        uniforms.setUniform("$name.position", viewSpaceVector)
+        uniforms.setUniform("$name.position", viewPosition)
         uniforms.setUniformRgb("$name.color", light.color)
         uniforms.setUniform("$name.intensity", light.intensity)
         uniforms.setUniform("$name.att.constant", light.attenuation.constant)
@@ -230,12 +219,11 @@ class SceneRenderer(private val resources: ResourceCache) {
         uniforms.setUniform("$name.att.exponent", light.attenuation.exponent)
     }
 
-    private fun updateSpotLight(light: SpotLight?, name: String, viewMatrix: Matrix4fc) {
-        updatePointLight(light, "$name.pl", viewMatrix)
-        if (light == null) return
+    private fun setSpotLight(name: String, packed: PackedSpotLight?) {
+        setPointLight("$name.pl", packed?.light, packed?.viewPosition)
+        if (packed == null) return
 
-        viewMatrix.transformDirection(light.direction, viewSpaceVector)
-        uniforms.setUniform("$name.conedir", viewSpaceVector)
-        uniforms.setUniform("$name.cutoff", light.cutoffCos)
+        uniforms.setUniform("$name.conedir", packed.viewDirection)
+        uniforms.setUniform("$name.cutoff", packed.light.cutoffCos)
     }
 }

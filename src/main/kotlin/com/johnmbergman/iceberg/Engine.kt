@@ -9,14 +9,14 @@ import com.johnmbergman.iceberg.scene.Scene
 import com.johnmbergman.iceberg.ui.UserInterface
 import org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE
 import org.lwjgl.glfw.GLFW.GLFW_PRESS
+import kotlin.time.TimeSource
 
 class Engine {
 
     private val platform: Platform
     private val window: Window
-    // 0 = uncapped; vsync (Window's swap interval) then paces rendering
-    private val targetFramesPerSecond: Int = 0
-    private val targetUpdatesPerSecond: Int = 60
+    // Monotonic, so frame deltas never go backwards or jump when the system clock is adjusted
+    private val timeSource: TimeSource.WithComparableMarks = TimeSource.Monotonic
     private val renderer: Renderer
     private val resources: ResourceCache
     private val ui: UserInterface
@@ -55,44 +55,28 @@ class Engine {
         running = true
     }
 
+    /**
+     * Runs one input, update and render per pass, each given the real time since the previous pass (a variable
+     * timestep). Vsync (the window's swap interval) paces the passes.
+     */
     private fun run() {
         logger.debug("Starting game engine...")
-        var initialTime = System.currentTimeMillis()
-        var timeU = 1000.0f / targetUpdatesPerSecond
-        var timeR = if (targetFramesPerSecond > 0) 1000.0f / targetFramesPerSecond else 0.0f
-        var deltaUpdate = 0.0f
-        var deltaFramesPerSecond = 0.0f
-        var updateTime = initialTime
-        var inputTime = initialTime
+        var lastFrame = timeSource.markNow()
         while (running && !window.shouldClose()) {
             platform.pollEvents()
+            val now = timeSource.markNow()
+            val delta = now - lastFrame
+            lastFrame = now
 
-            val now = System.currentTimeMillis()
-            deltaUpdate += (now - initialTime) / timeU
-            deltaFramesPerSecond += (now - initialTime) / timeR
+            window.mouseInput.input()
+            ui.beginFrame(delta)
+            handler.onInput(window, currentScene, delta)
+            handler.onUpdate(window, currentScene, delta)
 
-            if (targetFramesPerSecond <= 0 || deltaFramesPerSecond >= 1) {
-                window.mouseInput.input()
-                ui.beginFrame(now - inputTime)
-                handler.onInput(window, currentScene, now - inputTime)
-                inputTime = now
-            }
-
-            if (deltaUpdate >= 1) {
-                val diffTimeMillis = now - updateTime
-                updateTime = now
-                handler.onUpdate(window, currentScene, diffTimeMillis)
-                deltaUpdate--
-            }
-
-            if (targetFramesPerSecond <= 0 || deltaFramesPerSecond >= 1) {
-                handler.onDrawUI(window, currentScene)
-                ui.endFrame()
-                renderer.render(window, currentScene)
-                deltaFramesPerSecond--
-                window.update()
-            }
-            initialTime = now
+            handler.onDrawUI(window, currentScene)
+            ui.endFrame()
+            renderer.render(window, currentScene)
+            window.update()
         }
         cleanup()
     }

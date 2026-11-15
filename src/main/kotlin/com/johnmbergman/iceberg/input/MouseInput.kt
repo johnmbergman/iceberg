@@ -2,23 +2,19 @@ package com.johnmbergman.iceberg.input
 
 import org.joml.Vector2f
 import org.lwjgl.glfw.GLFW
-import org.lwjgl.glfw.GLFWCursorPosCallbackI
 
+/** Connects GLFW's mouse callbacks to a [MouseState]. The movement math lives in [MouseState]. */
 class MouseInput(private val windowHandle: Long) {
-    val currentPos: Vector2f = Vector2f()
-    val displVec: Vector2f = Vector2f()
+    private val state = MouseState()
+
+    val currentPos: Vector2f get() = state.currentPos
+    /** Movement since the previous [input], with the axes swapped; see [MouseState.displVec]. */
+    val displVec: Vector2f get() = state.displVec
     /** Scroll wheel / trackpad offset received since the previous [input] call; positive y scrolls up. */
-    val scrollDelta: Vector2f = Vector2f()
-    var isLeftButtonPressed: Boolean
-        private set
-    private val previousPos: Vector2f = Vector2f()
-    var isRightButtonPressed: Boolean
-        private set
-    var isMiddleButtonPressed: Boolean
-        private set
-    private var hasPreviousPos = false
-    // Accumulated by the scroll callback between input() calls, since several events can arrive per frame
-    private val pendingScroll: Vector2f = Vector2f()
+    val scrollDelta: Vector2f get() = state.scrollDelta
+    val isLeftButtonPressed: Boolean get() = state.isLeftButtonPressed
+    val isRightButtonPressed: Boolean get() = state.isRightButtonPressed
+    val isMiddleButtonPressed: Boolean get() = state.isMiddleButtonPressed
 
     /**
      * When captured, the cursor is hidden and locked to the window, and movement is reported
@@ -32,54 +28,32 @@ class MouseInput(private val windowHandle: Long) {
                 GLFW.glfwSetInputMode(windowHandle, GLFW.GLFW_RAW_MOUSE_MOTION, if (value) GLFW.GLFW_TRUE else GLFW.GLFW_FALSE)
             }
             // The cursor position jumps when the mode changes, so don't treat it as movement
-            hasPreviousPos = false
+            state.resetMotion()
         }
 
     init {
-        this.isLeftButtonPressed = false
-        this.isRightButtonPressed = false
-        this.isMiddleButtonPressed = false
-
-        GLFW.glfwSetCursorPosCallback(windowHandle, GLFWCursorPosCallbackI { handle: Long, xpos: Double, ypos: Double ->
-            currentPos.x = xpos.toFloat()
-            currentPos.y = ypos.toFloat()
-        })
-        GLFW.glfwSetMouseButtonCallback(windowHandle) { _: Long, button: Int, action: Int, _: Int ->
+        GLFW.glfwSetCursorPosCallback(windowHandle) { _, xpos, ypos ->
+            state.onCursorMoved(xpos.toFloat(), ypos.toFloat())
+        }
+        GLFW.glfwSetMouseButtonCallback(windowHandle) { _, button, action, _ ->
+            val pressed = action == GLFW.GLFW_PRESS
             when (button) {
-                GLFW.GLFW_MOUSE_BUTTON_LEFT -> isLeftButtonPressed = action == GLFW.GLFW_PRESS
-                GLFW.GLFW_MOUSE_BUTTON_RIGHT -> isRightButtonPressed = action == GLFW.GLFW_PRESS
-                GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> isMiddleButtonPressed = action == GLFW.GLFW_PRESS
+                GLFW.GLFW_MOUSE_BUTTON_LEFT -> state.isLeftButtonPressed = pressed
+                GLFW.GLFW_MOUSE_BUTTON_RIGHT -> state.isRightButtonPressed = pressed
+                GLFW.GLFW_MOUSE_BUTTON_MIDDLE -> state.isMiddleButtonPressed = pressed
             }
         }
-        GLFW.glfwSetScrollCallback(windowHandle) { _: Long, xoffset: Double, yoffset: Double ->
-            pendingScroll.x += xoffset.toFloat()
-            pendingScroll.y += yoffset.toFloat()
+        GLFW.glfwSetScrollCallback(windowHandle) { _, xoffset, yoffset ->
+            state.onScroll(xoffset.toFloat(), yoffset.toFloat())
         }
     }
 
+    /** Call once per frame, after polling events. */
     fun input() {
-        displVec.x = 0f
-        displVec.y = 0f
-        scrollDelta.set(pendingScroll)
-        pendingScroll.zero()
         // Query hover state each frame; the cursor enter callback only fires on transitions,
         // so it misses a cursor that is already over the window when it opens.
         // A captured cursor's virtual position is unbounded, so hover doesn't apply.
         val inWindow = isCaptured || GLFW.glfwGetWindowAttrib(windowHandle, GLFW.GLFW_HOVERED) == GLFW.GLFW_TRUE
-        if (hasPreviousPos && inWindow) {
-            val deltax = (currentPos.x - previousPos.x).toDouble()
-            val deltay = (currentPos.y - previousPos.y).toDouble()
-            val rotateX = deltax != 0.0
-            val rotateY = deltay != 0.0
-            if (rotateX) {
-                displVec.y = deltax.toFloat()
-            }
-            if (rotateY) {
-                displVec.x = deltay.toFloat()
-            }
-        }
-        previousPos.x = currentPos.x
-        previousPos.y = currentPos.y
-        hasPreviousPos = true
+        state.update(inWindow)
     }
 }
