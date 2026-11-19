@@ -45,13 +45,13 @@ class TestGame: IAppLogic {
 
         // The same wall with and without a normal map, side by side, to compare the lighting
         val wallLeft = SceneNode("wall-left")
-        wallLeft.modelId = resources.loadModel("models/wall/wall_nonormals.obj")
+        wallLeft.add(ModelRenderer(resources.loadModel("models/wall/wall_nonormals.obj")))
         wallLeft.setPosition(-3f, 0f, 0f)
         wallLeft.setScale(2f)
         scene.add(wallLeft)
 
         val wallRight = SceneNode("wall-right")
-        wallRight.modelId = resources.loadModel("models/wall/wall.obj")
+        wallRight.add(ModelRenderer(resources.loadModel("models/wall/wall.obj")))
         wallRight.setPosition(3f, 0f, 0f)
         wallRight.setScale(2f)
         scene.add(wallRight)
@@ -60,7 +60,7 @@ class TestGame: IAppLogic {
         val cubeModelId = resources.loadModel("models/cube/cube.obj")
         for ((name, x) in listOf("cube-left" to -3f, "cube-right" to 3f)) {
             val cube = SceneNode(name)
-            cube.modelId = cubeModelId
+            cube.add(ModelRenderer(cubeModelId))
             cube.setPosition(x, 1f, 0f)
             scene.add(cube)
         }

@@ -12,11 +12,13 @@ import org.joml.Vector3fc
  * then translation) is relative to its parent, and [worldMatrix] combines it with every ancestor's. Matrices are
  * recomputed lazily, only after something changed, so callers never need to update them.
  *
- * A node with a [modelId] draws that model; nodes without one just group and position their children.
+ * What a node does beyond positioning its children comes from its [components]; for example, a [ModelRenderer]
+ * draws a model. A node without components just groups and positions its children.
  */
 class SceneNode(val name: String = "") {
 
-    var modelId: ModelId? = null
+    val components: List<Component>
+        field = ArrayList<Component>(2)
 
     var parent: SceneNode? = null
         private set
@@ -116,6 +118,28 @@ class SceneNode(val name: String = "") {
         child.parent = null
         child.markWorldDirty()
     }
+
+    /** Attaches [component] and returns it. A node can't hold two components of the same class. */
+    fun <T : Component> add(component: T): T {
+        require(component.node == null) {
+            "${component.javaClass.simpleName} is already attached to '${component.node?.name}'"
+        }
+        require(components.none { it.javaClass == component.javaClass }) {
+            "Node '$name' already has a ${component.javaClass.simpleName}"
+        }
+        components += component
+        component.node = this
+        return component
+    }
+
+    fun remove(component: Component) {
+        require(component.node === this) { "${component.javaClass.simpleName} is not attached to '$name'" }
+        components.remove(component)
+        component.node = null
+    }
+
+    /** The first component that is a [T]. Subtypes match, so asking for a supertype finds any of its subclasses. */
+    inline fun <reified T : Component> get(): T? = components.firstOrNull { it is T } as T?
 
     private fun localChanged() {
         localDirty = true

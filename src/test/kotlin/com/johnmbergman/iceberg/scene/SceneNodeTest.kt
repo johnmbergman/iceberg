@@ -33,7 +33,7 @@ class SceneNodeTest {
         val node = SceneNode("node")
         assertNull(node.parent)
         assertTrue(node.children.isEmpty())
-        assertNull(node.modelId)
+        assertTrue(node.components.isEmpty())
         assertIdentity(node.localMatrix)
         assertIdentity(node.worldMatrix)
     }

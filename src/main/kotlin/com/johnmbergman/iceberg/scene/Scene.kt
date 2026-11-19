@@ -22,6 +22,26 @@ class Scene {
         root.removeChild(node)
     }
 
+    /** Calls [action] for every [T] on a node under [root], in scene-graph order (parents before children). */
+    inline fun <reified T : Component> forEach(noinline action: (T) -> Unit) = forEach(T::class.java, action)
+
+    fun <T : Component> forEach(type: Class<T>, action: (T) -> Unit) = visit(root, type, action)
+
+    private fun <T : Component> visit(node: SceneNode, type: Class<T>, action: (T) -> Unit) {
+        // Indexed loops: this runs every frame, so avoid creating iterators
+        val components = node.components
+        for (i in components.indices) {
+            val component = components[i]
+            if (type.isInstance(component)) {
+                action(type.cast(component))
+            }
+        }
+        val children = node.children
+        for (i in children.indices) {
+            visit(children[i], type, action)
+        }
+    }
+
     fun addLight(light: Light) {
         lights += light
     }

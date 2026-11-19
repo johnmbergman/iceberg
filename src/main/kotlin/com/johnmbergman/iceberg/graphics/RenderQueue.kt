@@ -1,8 +1,8 @@
 package com.johnmbergman.iceberg.graphics
 
 import com.johnmbergman.iceberg.scene.ModelId
+import com.johnmbergman.iceberg.scene.ModelRenderer
 import com.johnmbergman.iceberg.scene.Scene
-import com.johnmbergman.iceberg.scene.SceneNode
 import org.joml.Matrix4fc
 
 /**
@@ -21,13 +21,11 @@ class RenderQueue {
 
     fun build(scene: Scene) {
         batches.values.forEach { it.clear() }
-        collect(scene.root)
+        scene.forEach<ModelRenderer> { renderer ->
+            // Scene.forEach only visits attached components, so the node is always set
+            batches.getOrPut(renderer.modelId) { mutableListOf() }.add(renderer.node!!.worldMatrix)
+        }
         // Forget models that no node draws any more
         batches.values.removeIf { it.isEmpty() }
-    }
-
-    private fun collect(node: SceneNode) {
-        node.modelId?.let { modelId -> batches.getOrPut(modelId) { mutableListOf() }.add(node.worldMatrix) }
-        node.children.forEach(::collect)
     }
 }

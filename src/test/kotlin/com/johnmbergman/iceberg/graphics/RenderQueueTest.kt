@@ -2,6 +2,7 @@ package com.johnmbergman.iceberg.graphics
 
 import com.johnmbergman.iceberg.assertVectorEquals
 import com.johnmbergman.iceberg.scene.ModelId
+import com.johnmbergman.iceberg.scene.ModelRenderer
 import com.johnmbergman.iceberg.scene.Scene
 import com.johnmbergman.iceberg.scene.SceneNode
 import org.joml.Vector3f
@@ -16,7 +17,8 @@ class RenderQueueTest {
     private val wall = ModelId("models/wall/wall.obj")
     private val cube = ModelId("models/cube/cube.obj")
 
-    private fun node(name: String, modelId: ModelId? = null) = SceneNode(name).also { it.modelId = modelId }
+    private fun node(name: String, modelId: ModelId? = null) =
+        SceneNode(name).also { node -> modelId?.let { node.add(ModelRenderer(it)) } }
 
     @Test
     fun emptySceneHasNoBatches() {
@@ -99,9 +101,23 @@ class RenderQueueTest {
 
         val queue = RenderQueue()
         queue.build(scene)
-        swapped.modelId = cube
+        swapped.get<ModelRenderer>()!!.modelId = cube
         queue.build(scene)
 
         assertEquals(setOf(cube), queue.batches.keys)
+    }
+
+    @Test
+    fun dropsNodesWhoseRendererWasRemoved() {
+        val scene = Scene()
+        val wallNode = node("wall", wall)
+        scene.add(wallNode)
+
+        val queue = RenderQueue()
+        queue.build(scene)
+        wallNode.remove(wallNode.get<ModelRenderer>()!!)
+        queue.build(scene)
+
+        assertTrue(queue.batches.isEmpty())
     }
 }
