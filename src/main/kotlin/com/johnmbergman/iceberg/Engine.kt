@@ -22,8 +22,8 @@ class Engine {
     private val ui: UserInterface
     private val logger: Logger = SimpleLogger()
     private val handler: IAppLogic
+    private val context: AppContext
 
-    private var currentScene: Scene
     private var running: Boolean = false
 
     constructor(handler: IAppLogic) {
@@ -42,7 +42,7 @@ class Engine {
         logger.debug("Resource cache initialized")
         renderer = OpenGLRenderer(resources)
         logger.debug("Renderer initialized")
-        currentScene = Scene()
+        context = AppContext(window, ui, resources, Scene())
         resize()
         // Escape quits unless the UI is using the keyboard, e.g., to cancel text entry. This acts on press
         // because ImGui releases the keyboard as soon as the text field closes, before the key comes back up.
@@ -51,7 +51,7 @@ class Engine {
                 window.requestClose()
             }
         }
-        handler.onInit(window, currentScene, renderer, ui, resources)
+        handler.onInit(context)
         running = true
     }
 
@@ -70,12 +70,12 @@ class Engine {
 
             window.mouseInput.input()
             ui.beginFrame(delta)
-            handler.onInput(window, currentScene, delta)
-            handler.onUpdate(window, currentScene, delta)
+            handler.onInput(context, delta)
+            handler.onUpdate(context, delta)
 
-            handler.onDrawUI(window, currentScene)
+            handler.onDrawUI(context)
             ui.endFrame()
-            renderer.render(window, currentScene)
+            renderer.render(window, context.scene)
             window.update()
         }
         cleanup()
@@ -100,7 +100,7 @@ class Engine {
     }
 
     private fun resize() {
-        currentScene.resize(window.width, window.height)
+        context.scene.resize(window.width, window.height)
     }
 
     fun start() {

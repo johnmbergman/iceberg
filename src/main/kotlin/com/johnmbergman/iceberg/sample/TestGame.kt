@@ -1,15 +1,12 @@
 package com.johnmbergman.iceberg.sample
 
 import com.johnmbergman.iceberg.Engine
+import com.johnmbergman.iceberg.AppContext
 import com.johnmbergman.iceberg.IAppLogic
-import com.johnmbergman.iceberg.Window
-import com.johnmbergman.iceberg.graphics.ResourceCache
-import com.johnmbergman.iceberg.graphics.Renderer
 import com.johnmbergman.iceberg.input.MouseInput
 import com.johnmbergman.iceberg.math.Color
 import com.johnmbergman.iceberg.scene.*
 import com.johnmbergman.iceberg.scene.lighting.DirectionalLight
-import com.johnmbergman.iceberg.ui.UserInterface
 import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW.*
 import kotlin.time.Duration
@@ -23,7 +20,6 @@ private const val LIGHT_ANGLE_STEP = 2.5f
 
 class TestGame: IAppLogic {
 
-    private lateinit var ui: UserInterface
     private lateinit var lightControls: LightControls
     private lateinit var dirLight: DirectionalLight
 
@@ -34,8 +30,11 @@ class TestGame: IAppLogic {
         Engine(this).start()
     }
 
-    override fun onInit(window: Window, scene: Scene, renderer: Renderer, ui: UserInterface, resources: ResourceCache) {
-        this.ui = ui
+    override fun onInit(context: AppContext) {
+        val window = context.window
+        val ui = context.ui
+        val resources = context.resources
+        val scene = context.scene
         window.mouseInput.isCaptured = false
         // Tab switches between steering the camera (cursor captured) and using the UI (cursor free)
         window.addKeyListener { key, action, _ ->
@@ -81,10 +80,12 @@ class TestGame: IAppLogic {
         lightControls = LightControls(scene)
     }
 
-    override fun onInput(window: Window, scene: Scene, delta: Duration) {
+    override fun onInput(context: AppContext, delta: Duration) {
         val move = delta.toDouble(DurationUnit.SECONDS).toFloat() * MOVEMENT_SPEED
 
-        val camera: Camera = scene.camera
+        val window = context.window
+        val ui = context.ui
+        val camera: Camera = context.scene.camera
         if (!ui.wantsKeyboard) {
             if (window.isKeyPressed(GLFW_KEY_W)) {
                 camera.moveForward(move)
@@ -127,7 +128,7 @@ class TestGame: IAppLogic {
         dirLight.direction.y = Math.cos(angleRadians).toFloat()
     }
 
-    override fun onDrawUI(window: Window, scene: Scene) {
+    override fun onDrawUI(context: AppContext) {
         lightControls.draw()
     }
 }
